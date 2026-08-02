@@ -1,0 +1,64 @@
+{
+  "name": "@create-web3/frontend",
+  "version": "0.1.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "export": "next export",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:ui": "vitest --ui",
+    "test:all": "npm run lint && npx tsc --noEmit && vitest run"
+  },
+  "dependencies": {
+    "@dynamic-labs/bitcoin": "^4.66.0",
+    "@dynamic-labs/ethereum": "^4.66.0",
+    "@dynamic-labs/sdk-react-core": "^4.66.0",
+    "@dynamic-labs/solana": "^4.66.0",
+    "@geist-ui/core": "^2.3.8",
+    "@rainbow-me/rainbowkit": "^2.2.10",
+    "@solana/web3.js": "^1.98.4",
+    "@tanstack/react-query": "^5.90.12",
+    "essential-eth": "^0.6.0",
+    "jotai": "^2.18.0",
+    "lightweight-charts": "^5.1.0",
+    "lucide-react": "^0.576.0",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-github-corner": "^2.5.0",
+    "viem": "^2.41.2",
+    "wagmi": "^2.19.5",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@vitest/ui": "^4.0.15",
+    "autoprefixer": "^10.4.22",
+    "dotenv": "^17.2.3",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.35",
+    "postcss": "^8.5.6",
+    "prettier": "^3.7.4",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "tailwindcss": "^3.1.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  },
+  "prettier": {
+    "trailingComma": "all",
+    "tabWidth": 2,
+    "singleQuote": true
+  },
+  "lint-staged": {
+    "*": [
+      "prettier -u --write"
+    ]
+  }
+}
