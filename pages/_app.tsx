@@ -1,6 +1,7 @@
 import { CssBaseline, GeistProvider } from '@geist-ui/core';
 import type { AppProps } from 'next/app';
 import NextHead from 'next/head';
+import { Analytics } from '@vercel/analytics/react';
 // @ts-ignore
 import '../styles/globals.css';
 
@@ -85,6 +86,7 @@ const App = ({ Component, pageProps }: AppProps) => {
             <Layout>
               <Component {...pageProps} />
             </Layout>
+            <Analytics />
           </GeistProvider>
         </DynamicContextProvider>
       </GlobalSearchProvider>
