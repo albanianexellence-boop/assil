@@ -38,6 +38,27 @@ const App = ({ Component, pageProps }: AppProps) => {
     );
   }
 
+  // Dynamic injects a <style> tag whose quotes are HTML-escaped on the server
+  // (&quot;) but raw on the client ("), which causes a hydration mismatch.
+  // Only mount Dynamic after the client is ready.
+  if (!isMounted) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <NextHead>
+          <title>NexSwap | Decentralized Exchange</title>
+          <meta
+            name="description"
+            content="Trade crypto with low fees and deep liquidity on NexSwap DEX"
+          />
+          <link rel="icon" href="/favicon.ico" />
+        </NextHead>
+        <GeistProvider>
+          <CssBaseline />
+        </GeistProvider>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <GlobalSearchProvider>
@@ -61,11 +82,9 @@ const App = ({ Component, pageProps }: AppProps) => {
           </NextHead>
           <GeistProvider>
             <CssBaseline />
-            {isMounted ? (
-              <Layout>
-                <Component {...pageProps} />
-              </Layout>
-            ) : null}
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
           </GeistProvider>
         </DynamicContextProvider>
       </GlobalSearchProvider>
