@@ -2155,174 +2155,724 @@ const CHAINS: ChainDef[] = [
   },
 ];
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface Props {
   selectedChain?: string;
   onChainSelect?: (chain: string) => void;
 }
 
-export const DexSidebar: React.FC<Props> = ({
-  selectedChain,
-  onChainSelect,
-}) => {
+type TabId = 'chains' | 'watchlist' | 'alerts' | 'multichart';
+
+interface WatchlistItem {
+  symbol: string;
+  price: string;
+  change24h: number;
+  chainId: string;
+  pairAddress: string;
+}
+
+interface AlertItem {
+  id: string;
+  symbol: string;
+  targetPrice: string;
+  condition: 'above' | 'below';
+}
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
+const SidebarSearchBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => (
+  <div
+    style={{
+      padding: '12px 12px 0 12px',
+    }}
+  >
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+      <svg
+        style={{ position: 'absolute', left: '11px', color: '#8b949e', pointerEvents: 'none' }}
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Search tokens…"
+        readOnly
+        onClick={onOpen}
+        style={{
+          width: '100%',
+          background: 'rgba(0,0,0,0.25)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: '9px',
+          padding: '9px 34px 9px 34px',
+          fontSize: '13px',
+          color: '#e6edf3',
+          outline: 'none',
+          cursor: 'pointer',
+          transition: 'border-color 0.2s, background 0.2s',
+          boxSizing: 'border-box',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+          e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = 'var(--glass-border)';
+          e.currentTarget.style.background = 'rgba(0,0,0,0.25)';
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          right: '10px',
+          fontSize: '11px',
+          color: '#8b949e',
+          border: '1px solid #30363d',
+          borderRadius: '4px',
+          padding: '1px 5px',
+          pointerEvents: 'none',
+          background: '#21262d',
+          lineHeight: '16px',
+        }}
+      >
+        /
+      </div>
+    </div>
+  </div>
+);
+
+// ─── Tab bar ─────────────────────────────────────────────────────────────────
+
+const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  {
+    id: 'chains',
+    label: 'Chains',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    ),
+  },
+  {
+    id: 'watchlist',
+    label: 'Watch',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ),
+  },
+  {
+    id: 'alerts',
+    label: 'Alerts',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+    ),
+  },
+  {
+    id: 'multichart',
+    label: 'Multi',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      </svg>
+    ),
+  },
+];
+
+const TabBar: React.FC<{ active: TabId; onChange: (t: TabId) => void }> = ({ active, onChange }) => (
+  <div
+    style={{
+      display: 'flex',
+      padding: '8px 8px 0 8px',
+      gap: '2px',
+    }}
+  >
+    {TABS.map((tab) => {
+      const isActive = tab.id === active;
+      return (
+        <button
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          title={tab.label}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '3px',
+            padding: '7px 4px',
+            borderRadius: '8px',
+            border: 'none',
+            background: isActive ? 'rgba(59,130,246,0.12)' : 'transparent',
+            color: isActive ? 'var(--accent-blue, #3b82f6)' : '#8b949e',
+            fontSize: '10px',
+            fontWeight: isActive ? 700 : 500,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            borderBottom: isActive ? '2px solid var(--accent-blue, #3b82f6)' : '2px solid transparent',
+            letterSpacing: '0.02em',
+          }}
+          onMouseEnter={(e) => {
+            if (!isActive) {
+              (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+              (e.currentTarget as HTMLElement).style.color = '#c9d1d9';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isActive) {
+              (e.currentTarget as HTMLElement).style.background = 'transparent';
+              (e.currentTarget as HTMLElement).style.color = '#8b949e';
+            }
+          }}
+        >
+          <span style={{ lineHeight: 1 }}>{tab.icon}</span>
+          <span>{tab.label}</span>
+        </button>
+      );
+    })}
+  </div>
+);
+
+// ─── Chains Tab ───────────────────────────────────────────────────────────────
+
+const chainsMenuItems = [
+  {
+    label: 'Watchlist',
+    href: '/watchlist',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Alerts',
+    href: '/alerts',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Multicharts',
+    href: '/multicharts',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      </svg>
+    ),
+  },
+  {
+    label: 'New Pairs',
+    href: '/tokens?filter=new',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Gainers & Losers',
+    href: '/tokens?filter=gainers',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+        <polyline points="16 7 22 7 22 13" />
+      </svg>
+    ),
+  },
+  {
+    label: 'API',
+    href: '#',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="16 18 22 12 16 6" />
+        <polyline points="8 6 2 12 8 18" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Advertise',
+    href: '#',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
+        <path d="M8 10h8" />
+        <path d="M8 14h5" />
+      </svg>
+    ),
+  },
+];
+
+const ChainsTab: React.FC<{
+  selectedChain?: string;
+  onChainSelect?: (chain: string) => void;
+}> = ({ selectedChain, onChainSelect }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+    {/* Quick nav menu */}
+    <div style={{ padding: '8px 8px 4px 8px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+      {chainsMenuItems.map((item) => (
+        <Link
+          key={item.label}
+          href={item.href}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '7px 10px',
+            borderRadius: '7px',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#8b949e',
+            textDecoration: 'none',
+            transition: 'background 0.12s, color 0.12s',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
+            (e.currentTarget as HTMLElement).style.color = '#e6edf3';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = 'transparent';
+            (e.currentTarget as HTMLElement).style.color = '#8b949e';
+          }}
+        >
+          <span style={{ opacity: 0.75, display: 'flex', alignItems: 'center' }}>{item.icon}</span>
+          <span>{item.label}</span>
+        </Link>
+      ))}
+    </div>
+
+    {/* Divider + section label */}
+    <div style={{ padding: '6px 12px 4px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
+      <span style={{ fontSize: '10px', color: '#484f58', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Networks
+      </span>
+      <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
+    </div>
+
+    {/* Chain filter buttons */}
+    <div style={{ padding: '0 8px 8px 8px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+      {CHAINS.map((c, index) => {
+        const isSelected = selectedChain === c.id;
+        return (
+          <button
+            key={`${c.id}-${index}`}
+            onClick={() => onChainSelect?.(isSelected ? '' : c.id)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '7px 10px',
+              borderRadius: '7px',
+              border: 'none',
+              background: isSelected ? `${c.color || '#3b82f6'}1a` : 'transparent',
+              color: isSelected ? (c.color || '#3b82f6') : '#8b949e',
+              fontSize: '13px',
+              fontWeight: isSelected ? 700 : 500,
+              cursor: 'pointer',
+              transition: 'background 0.12s, color 0.12s',
+              textAlign: 'left',
+              width: '100%',
+            }}
+            onMouseEnter={(e) => {
+              if (!isSelected) {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
+                (e.currentTarget as HTMLElement).style.color = '#c9d1d9';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSelected) {
+                (e.currentTarget as HTMLElement).style.background = 'transparent';
+                (e.currentTarget as HTMLElement).style.color = '#8b949e';
+              }
+            }}
+          >
+            <span style={{ width: '18px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{c.icon}</span>
+            <span style={{ flex: 1 }}>{c.label}</span>
+            {isSelected && (
+              <span style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: c.color || '#3b82f6',
+                flexShrink: 0,
+                boxShadow: `0 0 6px ${c.color || '#3b82f6'}`,
+              }} />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
+// ─── Watchlist Tab ────────────────────────────────────────────────────────────
+
+const WatchlistTab: React.FC = () => {
+  const [items, setItems] = useState<WatchlistItem[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('dex_watchlist');
+      if (raw) setItems(JSON.parse(raw) as WatchlistItem[]);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  if (items.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', gap: '12px' }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '12px',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#484f58',
+        }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: '#8b949e', fontWeight: 600 }}>No tokens yet</p>
+          <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#484f58' }}>Star a token to watch it</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px' }}>
+      {items.map((item) => {
+        const isPos = item.change24h >= 0;
+        return (
+          <Link
+            key={`${item.chainId}-${item.pairAddress}`}
+            href={`/tokens/${item.chainId}/${item.pairAddress}`}
+            style={{ textDecoration: 'none' }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 10px',
+                borderRadius: '9px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                cursor: 'pointer',
+                transition: 'background 0.12s, border-color 0.12s',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)';
+                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.12)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)';
+                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)';
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#e6edf3' }}>{item.symbol}</div>
+                <div style={{ fontSize: '11px', color: '#8b949e', marginTop: '1px' }}>{item.price}</div>
+              </div>
+              <div style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '3px 7px',
+                borderRadius: '5px',
+                background: isPos ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+                color: isPos ? 'var(--accent-green, #22c55e)' : '#ef4444',
+              }}>
+                {isPos ? '+' : ''}{item.change24h.toFixed(2)}%
+              </div>
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─── Alerts Tab ───────────────────────────────────────────────────────────────
+
+const AlertsTab: React.FC = () => {
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [symbol, setSymbol] = useState('');
+  const [targetPrice, setTargetPrice] = useState('');
+  const [condition, setCondition] = useState<'above' | 'below'>('above');
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('dex_alerts');
+      if (raw) setAlerts(JSON.parse(raw) as AlertItem[]);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const saveAlerts = (next: AlertItem[]) => {
+    setAlerts(next);
+    try { localStorage.setItem('dex_alerts', JSON.stringify(next)); } catch { /* ignore */ }
+  };
+
+  const addAlert = () => {
+    if (!symbol.trim() || !targetPrice.trim()) return;
+    const newAlert: AlertItem = {
+      id: `${Date.now()}-${Math.random()}`,
+      symbol: symbol.trim().toUpperCase(),
+      targetPrice: targetPrice.trim(),
+      condition,
+    };
+    saveAlerts([newAlert, ...alerts]);
+    setSymbol('');
+    setTargetPrice('');
+  };
+
+  const deleteAlert = (id: string) => {
+    saveAlerts(alerts.filter((a) => a.id !== id));
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    background: 'rgba(0,0,0,0.25)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '7px',
+    padding: '8px 10px',
+    fontSize: '12px',
+    color: '#e6edf3',
+    outline: 'none',
+    boxSizing: 'border-box',
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px' }}>
+      {/* Add alert form */}
+      <div style={{
+        background: 'rgba(59,130,246,0.06)',
+        border: '1px solid rgba(59,130,246,0.15)',
+        borderRadius: '10px',
+        padding: '10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '7px',
+      }}>
+        <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: 'var(--accent-blue, #3b82f6)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          New Alert
+        </p>
+        <input
+          type="text"
+          placeholder="Token symbol (e.g. ETH)"
+          value={symbol}
+          onChange={(e) => setSymbol(e.target.value)}
+          style={inputStyle}
+        />
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <input
+            type="number"
+            placeholder="Target price"
+            value={targetPrice}
+            onChange={(e) => setTargetPrice(e.target.value)}
+            style={{ ...inputStyle, flex: 1 }}
+          />
+          <select
+            value={condition}
+            onChange={(e) => setCondition(e.target.value as 'above' | 'below')}
+            style={{
+              ...inputStyle,
+              width: 'auto',
+              padding: '8px 6px',
+              cursor: 'pointer',
+              background: 'rgba(0,0,0,0.35)',
+            }}
+          >
+            <option value="above">Above</option>
+            <option value="below">Below</option>
+          </select>
+        </div>
+        <button
+          onClick={addAlert}
+          style={{
+            width: '100%',
+            padding: '8px',
+            borderRadius: '7px',
+            border: 'none',
+            background: 'var(--accent-blue, #3b82f6)',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.85'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+        >
+          Add Alert
+        </button>
+      </div>
+
+      {/* Existing alerts */}
+      {alerts.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '20px 0', color: '#484f58', fontSize: '12px' }}>
+          No alerts set yet
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {alerts.map((alert) => (
+            <div
+              key={alert.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 10px',
+                borderRadius: '9px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#e6edf3' }}>{alert.symbol}</div>
+                <div style={{ fontSize: '11px', color: '#8b949e', marginTop: '1px' }}>
+                  <span style={{ color: alert.condition === 'above' ? 'var(--accent-green, #22c55e)' : '#ef4444', fontWeight: 600 }}>
+                    {alert.condition === 'above' ? '▲ Above' : '▼ Below'}
+                  </span>
+                  {' '}{alert.targetPrice}
+                </div>
+              </div>
+              <button
+                onClick={() => deleteAlert(alert.id)}
+                title="Delete alert"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#484f58',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'color 0.1s, background 0.1s',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.color = '#ef4444';
+                  (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.color = '#484f58';
+                  (e.currentTarget as HTMLElement).style.background = 'transparent';
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Multichart Tab ───────────────────────────────────────────────────────────
+
+const MultichartTab: React.FC = () => (
+  <div style={{ padding: '8px' }}>
+    <div style={{ marginBottom: '10px' }}>
+      <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#e6edf3' }}>Multi Chart View</p>
+      <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#8b949e' }}>Monitor up to 4 pairs at once</p>
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+      {[0, 1, 2, 3].map((i) => (
+        <button
+          key={i}
+          style={{
+            aspectRatio: '1',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px dashed rgba(255,255,255,0.1)',
+            borderRadius: '10px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            transition: 'background 0.15s, border-color 0.15s',
+            color: '#484f58',
+            padding: 0,
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = 'rgba(59,130,246,0.07)';
+            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(59,130,246,0.3)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--accent-blue, #3b82f6)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)';
+            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.1)';
+            (e.currentTarget as HTMLElement).style.color = '#484f58';
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          <span style={{ fontSize: '10px', fontWeight: 600 }}>Add Pair</span>
+        </button>
+      ))}
+    </div>
+    <p style={{ margin: '10px 0 0', fontSize: '11px', color: '#484f58', textAlign: 'center' }}>
+      Click a slot to add a trading pair
+    </p>
+  </div>
+);
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export const DexSidebar: React.FC<Props> = ({ selectedChain, onChainSelect }) => {
   const router = useRouter();
-
-  const menuItems = [
-    {
-      label: 'Watchlist',
-      href: '/watchlist',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Alerts',
-      href: '/alerts',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Multicharts',
-      href: '/multicharts',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="3" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="14" width="7" height="7" rx="1.5" />
-          <rect x="3" y="14" width="7" height="7" rx="1.5" />
-        </svg>
-      ),
-    },
-    {
-      label: 'New Pairs',
-      href: '/tokens?filter=new',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 22v-7l-2-2"></path>
-          <path d="M12 15l2-2"></path>
-          <path d="M10 13c-2.34-1.45-3.32-3.8-2.68-5.88.5-1.63 2.1-2.91 3.9-3.07 1-.09 1.95.12 2.78.65"></path>
-          <path d="M14 13c2.34-1.45 3.32-3.8 2.68-5.88-.5-1.63-2.1-2.91-3.9-3.07-1-.09-1.95.12-2.78.65"></path>
-        </svg>
-      ),
-    },
-    {
-      label: 'Gainers & Losers',
-      href: '/tokens?filter=gainers',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 5v14"></path>
-          <path d="M19 12l-7 7-7-7"></path>
-          <path d="M5 12l7-7 7 7" strokeDasharray="3 3"></path>
-          <path d="M17 11V5h-6"></path>
-          <path d="M7 13v6h6"></path>
-        </svg>
-      ),
-    },
-    {
-      label: 'API',
-      href: '#',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline points="16 18 22 12 16 6" />
-          <polyline points="8 6 2 12 8 18" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Advertise',
-      href: '#',
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
-          <path d="M8 10v4" />
-          <path d="M12 10v4" />
-          <path d="M16 10v4" />
-          <path d="M8 12h8" />
-        </svg>
-      ),
-    },
-  ];
-
   const { openSearch } = useGlobalSearch();
+  const [activeTab, setActiveTab] = useState<TabId>('chains');
+
+  // Suppress unused variable warning — router is available for future use
+  void router;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Open modal on `/` key if no other input is focused
       if (
         e.key === '/' &&
         document.activeElement?.tagName !== 'INPUT' &&
@@ -2338,222 +2888,50 @@ export const DexSidebar: React.FC<Props> = ({
 
   return (
     <>
-    <aside
-      className="glass"
-      style={{
-        width: '240px',
-        flexShrink: 0,
-        borderRight: '1px solid var(--glass-border)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflowY: 'auto',
-        height: '100%',
-        scrollbarColor: '#30363d transparent',
-        scrollbarWidth: 'thin',
-        zIndex: 99999,
-        boxShadow: 'var(--premium-shadow)',
-        margin: '60px 0 0 0', // Account for header
-      }}
-    >
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        aside::-webkit-scrollbar { width: 4px; }
-        aside::-webkit-scrollbar-track { background: transparent; }
-        aside::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
-        aside::-webkit-scrollbar-thumb:hover { background: #484f58; }
-      `,
-        }}
-      />
-
-      {/* Search Bar & App Button */}
-      <div
+      <style dangerouslySetInnerHTML={{ __html: `
+        .dex-sidebar::-webkit-scrollbar { width: 3px; }
+        .dex-sidebar::-webkit-scrollbar-track { background: transparent; }
+        .dex-sidebar::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        .dex-sidebar::-webkit-scrollbar-thumb:hover { background: #484f58; }
+        .dex-sidebar input::placeholder { color: #484f58; }
+        .dex-sidebar select option { background: #161b22; color: #e6edf3; }
+      `}} />
+      <aside
+        className="glass dex-sidebar"
         style={{
-          padding: '16px',
+          width: '240px',
+          flexShrink: 0,
+          borderRight: '1px solid var(--glass-border)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
-          borderBottom: '1px solid #21262d',
+          overflowY: 'auto',
+          height: '100%',
+          scrollbarColor: '#30363d transparent',
+          scrollbarWidth: 'thin',
+          zIndex: 99999,
+          boxShadow: 'var(--premium-shadow)',
+          margin: '60px 0 0 0',
         }}
       >
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <svg
-            style={{ position: 'absolute', left: '12px', color: '#8b949e' }}
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search"
-            readOnly
-            onClick={openSearch}
-            style={{
-              width: '100%',
-              background: 'rgba(0,0,0,0.2)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: '10px',
-              padding: '10px 36px 10px 36px',
-              fontSize: '14px',
-              color: '#e6edf3',
-              outline: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-              e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--glass-border)';
-              e.currentTarget.style.background = 'rgba(0,0,0,0.2)';
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              right: '12px',
-              fontSize: '11px',
-              color: '#8b949e',
-              border: '1px solid #30363d',
-              borderRadius: '4px',
-              padding: '2px 5px',
-              pointerEvents: 'none',
-              background: '#21262d',
-            }}
-          >
-            /
-          </div>
+        {/* Search bar */}
+        <SidebarSearchBar onOpen={openSearch} />
+
+        {/* Tab bar */}
+        <TabBar active={activeTab} onChange={setActiveTab} />
+
+        {/* Thin separator */}
+        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '6px 0 0 0' }} />
+
+        {/* Tab content */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {activeTab === 'chains' && (
+            <ChainsTab selectedChain={selectedChain} onChainSelect={onChainSelect} />
+          )}
+          {activeTab === 'watchlist' && <WatchlistTab />}
+          {activeTab === 'alerts' && <AlertsTab />}
+          {activeTab === 'multichart' && <MultichartTab />}
         </div>
-      </div>
-
-      {/* Menu items */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2px',
-          padding: '8px',
-        }}
-      >
-        {menuItems.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              fontSize: '15px',
-              fontWeight: 600,
-              color: '#8b949e',
-              textDecoration: 'none',
-              transition: 'all 0.1s',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = '#21262d';
-              (e.currentTarget as HTMLElement).style.color = '#e6edf3';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'transparent';
-              (e.currentTarget as HTMLElement).style.color = '#8b949e';
-            }}
-          >
-            <div
-              style={{
-                width: '20px',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              {item.icon}
-            </div>
-            <span>{item.label}</span>
-          </Link>
-        ))}
-      </div>
-
-      <div
-        style={{
-          height: '1px',
-          background: '#21262d',
-          margin: '8px 16px',
-        }}
-      />
-
-      {/* Chain filters */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2px',
-          padding: '8px',
-        }}
-      >
-        {CHAINS.map((c, index) => (
-          <button
-            key={`${c.id}-${index}`}
-            onClick={() => onChainSelect?.(selectedChain === c.id ? '' : c.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: 'none',
-              background:
-                selectedChain === c.id
-                  ? `${c.color || '#3b82f6'}22`
-                  : 'transparent',
-              color: selectedChain === c.id ? c.color || '#3b82f6' : '#8b949e',
-              fontSize: '14px',
-              fontWeight: selectedChain === c.id ? 700 : 500,
-              cursor: 'pointer',
-              transition: 'all 0.1s',
-              textAlign: 'left',
-            }}
-            onMouseEnter={(e) => {
-              if (selectedChain !== c.id) {
-                (e.currentTarget as HTMLElement).style.background = '#21262d';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (selectedChain !== c.id) {
-                (e.currentTarget as HTMLElement).style.background =
-                  'transparent';
-              }
-            }}
-          >
-            <div
-              style={{
-                width: '20px',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              {c.icon}
-            </div>
-            <span>{c.label}</span>
-          </button>
-        ))}
-      </div>
-    </aside>
+      </aside>
     </>
   );
 };

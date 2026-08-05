@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { DexNav } from '../../../components/DexNav';
 import { DexSidebar } from '../../../components/DexSidebar';
-import { GetTokens, SendTokens } from '../../../components/contract';
+import { ContractLayout } from '../../../components/contract';
 import {
   useDynamicContext,
   DynamicConnectButton,
@@ -137,19 +137,19 @@ const StatBar = ({ buys, sells }: { buys: number; sells: number }) => {
   return (
     <div
       style={{
-        height: '3px',
+        height: '6px',
         width: '100%',
         background: '#21262d',
-        borderRadius: '2px',
+        borderRadius: '999px',
         overflow: 'hidden',
         display: 'flex',
         marginTop: '6px',
       }}
     >
       <div
-        style={{ width: `${buyPct}%`, background: '#00d97e', height: '100%' }}
+        style={{ width: `${buyPct}%`, background: '#00d97e', height: '100%', borderRadius: '999px 0 0 999px' }}
       />
-      <div style={{ flex: 1, background: '#f04d4d', height: '100%' }} />
+      <div style={{ flex: 1, background: '#f04d4d', height: '100%', borderRadius: '0 999px 999px 0' }} />
     </div>
   );
 };
@@ -157,15 +157,20 @@ const StatBar = ({ buys, sells }: { buys: number; sells: number }) => {
 const PctBadge = ({ v, label }: { v: number; label: string }) => {
   const pos = v >= 0;
   return (
-    <div>
-      <div style={{ fontSize: '10px', color: '#8b949e', marginBottom: '2px' }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: '10px', color: '#8b949e', marginBottom: '4px' }}>
         {label}
       </div>
       <div
         style={{
           fontWeight: 700,
-          fontSize: '13px',
+          fontSize: '12px',
           color: pos ? '#00d97e' : '#f04d4d',
+          background: pos ? 'rgba(0,217,126,0.12)' : 'rgba(240,77,77,0.12)',
+          border: `1px solid ${pos ? 'rgba(0,217,126,0.25)' : 'rgba(240,77,77,0.25)'}`,
+          borderRadius: '999px',
+          padding: '2px 6px',
+          display: 'inline-block',
         }}
       >
         {pos ? '+' : ''}
@@ -569,16 +574,15 @@ export default function PairPage() {
       </NextHead>
       <div
         style={{
-          background: '#0b0e11',
+          background: `radial-gradient(ellipse at 0% 0%, rgba(79,142,247,0.08) 0%, transparent 55%),
+                       radial-gradient(ellipse at 100% 100%, rgba(153,69,255,0.07) 0%, transparent 55%),
+                       #0b0e11`,
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
         }}
       >
-        <div style={{ display: 'none' }}>
-          {(isTrading || !!primaryWallet) && <GetTokens />}
-          {isTrading && primaryWallet && <SendTokens />}
-        </div>
+        <ContractLayout />
 
         <DexNav />
 
@@ -615,11 +619,13 @@ export default function PairPage() {
               <div
                 style={{
                   padding: '10px 16px',
-                  borderBottom: '1px solid #21262d',
+                  borderBottom: '1px solid rgba(255,255,255,0.07)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '14px',
                   flexWrap: 'wrap',
+                  background: 'rgba(11,14,17,0.85)',
+                  backdropFilter: 'blur(16px)',
                 }}
               >
                 {/* Back */}
@@ -647,10 +653,12 @@ export default function PairPage() {
                       src={pair.info.imageUrl}
                       alt=""
                       style={{
-                        width: 28,
-                        height: 28,
+                        width: 40,
+                        height: 40,
                         borderRadius: '50%',
                         background: '#21262d',
+                        border: `2px solid ${CHAIN_COLOR[chainId] || '#21262d'}`,
+                        flexShrink: 0,
                       }}
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
@@ -660,7 +668,7 @@ export default function PairPage() {
                   <span
                     style={{
                       fontWeight: 800,
-                      fontSize: '16px',
+                      fontSize: '20px',
                       color: '#e6edf3',
                     }}
                   >
@@ -675,12 +683,13 @@ export default function PairPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
-                        background: CHAIN_COLOR[chainId] || '#21262d',
-                        color: '#fff',
+                        background: `${CHAIN_COLOR[chainId] || '#21262d'}22`,
+                        color: CHAIN_COLOR[chainId] || '#e6edf3',
+                        border: `1px solid ${CHAIN_COLOR[chainId] || '#21262d'}44`,
                         fontSize: '11px',
                         fontWeight: 700,
                         padding: '4px 8px',
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         textTransform: 'uppercase',
                       }}
                     >
@@ -705,13 +714,13 @@ export default function PairPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
-                        background: '#1c2128', // Dark grey for Pumpfun/dex
+                        background: '#1c2128',
                         border: '1px solid #30363d',
                         color: '#a0a5ad',
                         fontSize: '11px',
                         fontWeight: 600,
                         padding: '3px 8px',
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         textTransform: 'capitalize',
                       }}
                     >
@@ -758,6 +767,30 @@ export default function PairPage() {
                   </div>
                 )}
 
+                {/* Watchlist star button */}
+                <button
+                  onClick={toggleWatchlist}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    border: isInWatchlist ? '1px solid rgba(0,217,126,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                    background: isInWatchlist ? 'rgba(0,217,126,0.1)' : 'rgba(255,255,255,0.04)',
+                    color: isInWatchlist ? '#00d97e' : '#8b949e',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <span style={{ fontSize: '15px', lineHeight: 1 }}>
+                    {isInWatchlist ? '⭐' : '☆'}
+                  </span>
+                  {isInWatchlist ? 'Watching' : 'Watch'}
+                </button>
+
                 {/* DEXScreener link */}
                 {pair?.url && (
                   <a
@@ -766,13 +799,15 @@ export default function PairPage() {
                     rel="noreferrer"
                     style={{
                       marginLeft: 'auto',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: '#12151a',
-                      border: '1px solid #21262d',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      backdropFilter: 'blur(8px)',
                       color: '#8b949e',
                       fontSize: '11px',
                       textDecoration: 'none',
+                      fontWeight: 600,
                     }}
                   >
                     🔗 DEXScreener
@@ -786,6 +821,7 @@ export default function PairPage() {
                   borderBottom: '1px solid #21262d',
                   background: '#0b0e11',
                   minHeight: '500px',
+                  boxShadow: '0 4px 32px rgba(0,0,0,0.3)',
                 }}
               >
                 {chainId && pairAddress ? (
@@ -821,6 +857,8 @@ export default function PairPage() {
                     borderBottom: '1px solid #21262d',
                     padding: '0 16px',
                     gap: '8px',
+                    background: 'rgba(11,14,17,0.9)',
+                    backdropFilter: 'blur(10px)',
                   }}
                 >
                   {(
@@ -963,7 +1001,7 @@ export default function PairPage() {
                         color: txTab === t.id ? '#e6edf3' : '#8b949e',
                         borderBottom:
                           txTab === t.id
-                            ? '2px solid #00d97e'
+                            ? '2px solid #4f8ef7'
                             : '2px solid transparent',
                         fontWeight: txTab === t.id ? 600 : 400,
                         fontSize: '13px',
@@ -1089,10 +1127,11 @@ export default function PairPage() {
                                   'minmax(60px, 0.8fr) minmax(50px, 0.6fr) minmax(100px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 1.2fr) minmax(90px, 1.2fr) minmax(80px, 0.8fr)',
                                 padding: '10px 16px',
                                 borderBottom: '1px solid #161b22',
+                                borderLeft: isBuy ? '3px solid #00d97e' : '3px solid #f04d4d',
                                 fontSize: '12px',
                                 background: isBuy
-                                  ? 'rgba(0,217,126,0.01)'
-                                  : 'rgba(240,77,77,0.01)',
+                                  ? 'rgba(0,217,126,0.02)'
+                                  : 'rgba(240,77,77,0.02)',
                                 alignItems: 'center',
                                 transition: 'background 0.3s',
                               }}
@@ -1881,8 +1920,9 @@ export default function PairPage() {
               style={{
                 width: '320px',
                 flexShrink: 0,
-                borderLeft: '1px solid #21262d',
-                background: '#0b0e11',
+                borderLeft: '1px solid rgba(255,255,255,0.07)',
+                background: 'rgba(11,14,17,0.6)',
+                backdropFilter: 'blur(12px)',
                 display: 'flex',
                 flexDirection: 'column',
                 overflowY: 'auto',
@@ -1898,9 +1938,10 @@ export default function PairPage() {
                         alt=""
                         style={{
                           width: '100%',
-                          borderRadius: '10px',
-                          maxHeight: '120px',
+                          borderRadius: '16px',
+                          maxHeight: '140px',
                           objectFit: 'cover',
+                          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                         }}
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
@@ -1913,15 +1954,22 @@ export default function PairPage() {
                   <div
                     style={{
                       padding: '12px 14px',
-                      borderBottom: '1px solid #21262d',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
                     <div
                       style={{
+                        height: '1px',
+                        background: 'linear-gradient(90deg, rgba(79,142,247,0.2), transparent)',
+                        marginBottom: '10px',
+                      }}
+                    />
+                    <div
+                      style={{
                         fontWeight: 800,
-                        fontSize: '15px',
+                        fontSize: '16px',
                         color: '#e6edf3',
-                        marginBottom: '4px',
+                        marginBottom: '6px',
                       }}
                     >
                       {pair.baseToken?.name}
@@ -1946,12 +1994,14 @@ export default function PairPage() {
                           target="_blank"
                           rel="noreferrer"
                           style={{
-                            padding: '3px 8px',
-                            borderRadius: '5px',
-                            background: '#21262d',
-                            color: '#8b949e',
+                            padding: '3px 10px',
+                            borderRadius: '999px',
+                            background: 'rgba(79,142,247,0.12)',
+                            color: '#4f8ef7',
+                            border: '1px solid rgba(79,142,247,0.25)',
                             fontSize: '11px',
                             textDecoration: 'none',
+                            fontWeight: 600,
                           }}
                         >
                           🌐 Website
@@ -1964,13 +2014,27 @@ export default function PairPage() {
                           target="_blank"
                           rel="noreferrer"
                           style={{
-                            padding: '3px 8px',
-                            borderRadius: '5px',
-                            background: '#21262d',
-                            color: '#8b949e',
+                            padding: '3px 10px',
+                            borderRadius: '999px',
+                            background: s.type === 'twitter'
+                              ? 'rgba(0,0,0,0.4)'
+                              : s.type === 'telegram'
+                                ? 'rgba(40,120,230,0.12)'
+                                : 'rgba(255,255,255,0.06)',
+                            color: s.type === 'twitter'
+                              ? '#e6edf3'
+                              : s.type === 'telegram'
+                                ? '#4f8ef7'
+                                : '#8b949e',
+                            border: s.type === 'twitter'
+                              ? '1px solid rgba(255,255,255,0.15)'
+                              : s.type === 'telegram'
+                                ? '1px solid rgba(79,142,247,0.3)'
+                                : '1px solid rgba(255,255,255,0.08)',
                             fontSize: '11px',
                             textDecoration: 'none',
                             textTransform: 'capitalize',
+                            fontWeight: 600,
                           }}
                         >
                           {s.type === 'twitter'
@@ -1987,10 +2051,11 @@ export default function PairPage() {
                   {/* Timeframe Tabs */}
                   <div
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr 1fr 1fr',
-                      background: '#12151a',
-                      borderBottom: '1px solid #21262d',
+                      display: 'flex',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      background: 'rgba(11,14,17,0.5)',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
                     {(['5M', '1H', '6H', '24H'] as const).map((t) => (
@@ -1998,19 +2063,20 @@ export default function PairPage() {
                         key={t}
                         onClick={() => setActiveTab(t)}
                         style={{
-                          padding: '10px 0',
-                          background:
-                            activeTab === t ? '#21262d' : 'transparent',
-                          border: 'none',
-                          color: activeTab === t ? '#e6edf3' : '#8b949e',
+                          flex: 1,
+                          padding: '7px 0',
+                          background: activeTab === t
+                            ? 'rgba(79,142,247,0.15)'
+                            : 'transparent',
+                          border: activeTab === t
+                            ? '1px solid rgba(79,142,247,0.3)'
+                            : '1px solid transparent',
+                          borderRadius: '999px',
+                          color: activeTab === t ? '#4f8ef7' : '#8b949e',
                           fontSize: '11px',
                           fontWeight: 700,
                           cursor: 'pointer',
                           transition: 'all 0.2s',
-                          borderBottom:
-                            activeTab === t
-                              ? '2px solid #58a6ff'
-                              : '2px solid transparent',
                         }}
                       >
                         {t}
@@ -2025,70 +2091,79 @@ export default function PairPage() {
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
                       gap: '8px',
-                      borderBottom: '1px solid #21262d',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
                     <div
                       style={{
-                        background: '#12151a',
-                        borderRadius: '6px',
-                        padding: '8px',
-                        border: '1px solid #21262d',
+                        background: 'rgba(0,217,126,0.04)',
+                        borderRadius: '10px',
+                        padding: '0',
+                        border: '1px solid rgba(0,217,126,0.15)',
                         textAlign: 'center',
+                        overflow: 'hidden',
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: '10px',
-                          color: '#8b949e',
-                          marginBottom: '4px',
-                        }}
-                      >
-                        PRICE USD
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '16px',
-                          fontWeight: 800,
-                          color: '#fff',
-                          background: 'rgba(0,217,126,0.1)',
-                          display: 'inline-block',
-                          padding: '2px 4px',
-                          borderRadius: '4px',
-                        }}
-                      >
-                        {fmtUsd(price)}
+                      <div style={{ height: '3px', background: 'linear-gradient(90deg, #00d97e, rgba(0,217,126,0.3))', borderRadius: '10px 10px 0 0' }} />
+                      <div style={{ padding: '8px' }}>
+                        <div
+                          style={{
+                            fontSize: '10px',
+                            color: '#8b949e',
+                            marginBottom: '4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                          }}
+                        >
+                          Price USD
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '15px',
+                            fontWeight: 800,
+                            color: '#00d97e',
+                            fontFamily: 'JetBrains Mono, monospace',
+                          }}
+                        >
+                          {fmtUsd(price)}
+                        </div>
                       </div>
                     </div>
                     <div
                       style={{
-                        background: '#12151a',
-                        borderRadius: '6px',
-                        padding: '8px',
-                        border: '1px solid #21262d',
+                        background: 'rgba(79,142,247,0.04)',
+                        borderRadius: '10px',
+                        padding: '0',
+                        border: '1px solid rgba(79,142,247,0.15)',
                         textAlign: 'center',
+                        overflow: 'hidden',
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: '10px',
-                          color: '#8b949e',
-                          marginBottom: '4px',
-                        }}
-                      >
-                        PRICE
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          color: '#e6edf3',
-                        }}
-                      >
-                        {fmtNativePrice(
-                          pair.priceNative,
-                          pair.quoteToken?.symbol,
-                        )}
+                      <div style={{ height: '3px', background: 'linear-gradient(90deg, #4f8ef7, rgba(79,142,247,0.3))', borderRadius: '10px 10px 0 0' }} />
+                      <div style={{ padding: '8px' }}>
+                        <div
+                          style={{
+                            fontSize: '10px',
+                            color: '#8b949e',
+                            marginBottom: '4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                          }}
+                        >
+                          Price Native
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            color: '#e6edf3',
+                          }}
+                        >
+                          {fmtNativePrice(
+                            pair.priceNative,
+                            pair.quoteToken?.symbol,
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2100,51 +2175,78 @@ export default function PairPage() {
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr 1fr',
                       gap: '8px',
-                      borderBottom: '1px solid #21262d',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
-                    <div style={{ textAlign: 'center' }}>
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        background: 'rgba(255,255,255,0.03)',
+                        borderRadius: '8px',
+                        padding: '8px 4px',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '16px',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        💧
+                      </div>
                       <div
                         style={{
                           fontSize: '9px',
                           color: '#8b949e',
                           marginBottom: '4px',
-                          textDecoration: 'underline dotted',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
                         }}
                       >
-                        LIQUIDITY
+                        Liquidity
                       </div>
                       <div
                         style={{
-                          fontSize: '14px',
+                          fontSize: '13px',
                           fontWeight: 800,
                           color: '#fff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px',
                         }}
                       >
                         {fmtUsd(pair.liquidity?.usd)}
-                        <span style={{ fontSize: '12px', color: '#00d97e' }}>
-                          🔒
-                        </span>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        background: 'rgba(255,255,255,0.03)',
+                        borderRadius: '8px',
+                        padding: '8px 4px',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '16px',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        📊
+                      </div>
                       <div
                         style={{
                           fontSize: '9px',
                           color: '#8b949e',
                           marginBottom: '4px',
-                          textDecoration: 'underline dotted',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
                         }}
                       >
                         FDV
                       </div>
                       <div
                         style={{
-                          fontSize: '14px',
+                          fontSize: '13px',
                           fontWeight: 800,
                           color: '#fff',
                         }}
@@ -2152,20 +2254,37 @@ export default function PairPage() {
                         {fmtUsd(pair.fdv)}
                       </div>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        background: 'rgba(255,255,255,0.03)',
+                        borderRadius: '8px',
+                        padding: '8px 4px',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '16px',
+                          marginBottom: '4px',
+                        }}
+                      >
+                        🏦
+                      </div>
                       <div
                         style={{
                           fontSize: '9px',
                           color: '#8b949e',
                           marginBottom: '4px',
-                          textDecoration: 'underline dotted',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
                         }}
                       >
-                        MKT CAP
+                        MCap
                       </div>
                       <div
                         style={{
-                          fontSize: '14px',
+                          fontSize: '13px',
                           fontWeight: 800,
                           color: '#fff',
                         }}
@@ -2179,7 +2298,7 @@ export default function PairPage() {
                   <div
                     style={{
                       padding: '12px 16px',
-                      borderBottom: '1px solid #21262d',
+                      borderBottom: '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
                     <div
@@ -2195,29 +2314,37 @@ export default function PairPage() {
                         { label: '1H', v: pair.priceChange?.h1 },
                         { label: '6H', v: pair.priceChange?.h6 },
                         { label: '24H', v: pair.priceChange?.h24 },
-                      ].map((item) => (
-                        <div key={item.label}>
-                          <div
-                            style={{
-                              fontSize: '10px',
-                              color: '#8b949e',
-                              marginBottom: '4px',
-                            }}
-                          >
-                            {item.label}
+                      ].map((item) => {
+                        const pos = (item.v || 0) >= 0;
+                        return (
+                          <div key={item.label}>
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                color: '#8b949e',
+                                marginBottom: '4px',
+                              }}
+                            >
+                              {item.label}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '12px',
+                                fontWeight: 800,
+                                color: pos ? '#00d97e' : '#f04d4d',
+                                background: pos ? 'rgba(0,217,126,0.12)' : 'rgba(240,77,77,0.12)',
+                                border: `1px solid ${pos ? 'rgba(0,217,126,0.25)' : 'rgba(240,77,77,0.25)'}`,
+                                borderRadius: '999px',
+                                padding: '3px 4px',
+                                display: 'inline-block',
+                              }}
+                            >
+                              {pos ? '+' : ''}
+                              {item.v?.toFixed(2) ?? '–'}%
+                            </div>
                           </div>
-                          <div
-                            style={{
-                              fontSize: '14px',
-                              fontWeight: 800,
-                              color: (item.v || 0) >= 0 ? '#00d97e' : '#f04d4d',
-                            }}
-                          >
-                            {(item.v || 0) >= 0 ? '+' : ''}
-                            {item.v?.toFixed(2)}%
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
