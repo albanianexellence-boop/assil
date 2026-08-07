@@ -10,6 +10,7 @@ import {
   useDynamicContext,
   DynamicConnectButton,
 } from '@dynamic-labs/sdk-react-core';
+import { useIsMobile } from '../../../hooks';
 
 import type { ComponentType } from 'react';
 
@@ -137,19 +138,34 @@ const StatBar = ({ buys, sells }: { buys: number; sells: number }) => {
   return (
     <div
       style={{
-        height: '6px',
+        height: '5px',
         width: '100%',
-        background: '#21262d',
+        background: 'rgba(255,255,255,0.06)',
         borderRadius: '999px',
         overflow: 'hidden',
         display: 'flex',
-        marginTop: '6px',
+        marginTop: '7px',
       }}
     >
       <div
-        style={{ width: `${buyPct}%`, background: '#00d97e', height: '100%', borderRadius: '999px 0 0 999px' }}
+        style={{
+          width: `${buyPct}%`,
+          background: 'linear-gradient(90deg, #00d97e, #00a86b)',
+          height: '100%',
+          borderRadius: '999px 0 0 999px',
+          boxShadow: '0 0 6px rgba(0,217,126,0.4)',
+          transition: 'width 0.5s ease',
+        }}
       />
-      <div style={{ flex: 1, background: '#f04d4d', height: '100%', borderRadius: '0 999px 999px 0' }} />
+      <div
+        style={{
+          flex: 1,
+          background: 'linear-gradient(90deg, #f04d4d, #c0392b)',
+          height: '100%',
+          borderRadius: '0 999px 999px 0',
+          boxShadow: '0 0 6px rgba(240,77,77,0.4)',
+        }}
+      />
     </div>
   );
 };
@@ -218,6 +234,8 @@ export default function PairPage() {
     pairAddress: string;
   };
   const { primaryWallet, setShowAuthFlow } = useDynamicContext();
+  const isMobile = useIsMobile();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isTrading, setIsTrading] = useState(false);
   const [showTradePanel, setShowTradePanel] = useState(false);
   const [tradePanelType, setTradePanelType] = useState<'buy' | 'sell'>('buy');
@@ -580,19 +598,23 @@ export default function PairPage() {
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
+          maxWidth: '100vw',
         }}
       >
         <ContractLayout />
 
-        <DexNav />
+        <DexNav onMobileSidebarToggle={() => setMobileSidebarOpen((p) => !p)} />
 
         <div
           style={{
             display: 'flex',
             flex: 1,
             paddingTop: '60px',
-            height: 'calc(100vh - 60px - 28px)',
-            overflow: 'hidden',
+            height: isMobile ? 'auto' : 'calc(100vh - 60px - 28px)',
+            overflow: isMobile ? 'visible' : 'hidden',
+            width: '100%',
+            minWidth: 0,
           }}
         >
           {/* Sidebar */}
@@ -602,30 +624,35 @@ export default function PairPage() {
               setSelectedChain(c);
               router.push('/tokens');
             }}
+            mobileOpen={mobileSidebarOpen}
+            onMobileClose={() => setMobileSidebarOpen(false)}
           />
 
           {/* Main split: chart+txns LEFT, token info RIGHT */}
-          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          <div className="pair-layout" style={{ flex: 1, display: 'flex', overflow: isMobile ? 'visible' : 'hidden', minWidth: 0, width: '100%' }}>
             {/* ===== LEFT: Chart + Transactions ===== */}
             <div
+              className="pair-left-panel"
               style={{
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden',
+                overflow: isMobile ? 'visible' : 'hidden',
+                minWidth: 0,
               }}
             >
               {/* Breadcrumb + Pair Header */}
               <div
                 style={{
-                  padding: '10px 16px',
+                  padding: isMobile ? '10px 12px' : '10px 16px',
                   borderBottom: '1px solid rgba(255,255,255,0.07)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '14px',
+                  gap: isMobile ? '8px' : '14px',
                   flexWrap: 'wrap',
                   background: 'rgba(11,14,17,0.85)',
                   backdropFilter: 'blur(16px)',
+                  overflow: 'hidden',
                 }}
               >
                 {/* Back */}
@@ -638,23 +665,24 @@ export default function PairPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
+                    flexShrink: 0,
                   }}
                 >
-                  ← All Pairs
+                  ← Pairs
                 </Link>
-                <span style={{ color: '#21262d' }}>|</span>
+                <span style={{ color: '#21262d', flexShrink: 0 }}>|</span>
 
                 {/* Token identity */}
                 <div
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', minWidth: 0 }}
                 >
                   {pair?.info?.imageUrl && (
                     <img
                       src={pair.info.imageUrl}
                       alt=""
                       style={{
-                        width: 40,
-                        height: 40,
+                        width: isMobile ? 28 : 40,
+                        height: isMobile ? 28 : 40,
                         borderRadius: '50%',
                         background: '#21262d',
                         border: `2px solid ${CHAIN_COLOR[chainId] || '#21262d'}`,
@@ -668,47 +696,43 @@ export default function PairPage() {
                   <span
                     style={{
                       fontWeight: 800,
-                      fontSize: '20px',
+                      fontSize: isMobile ? '16px' : '20px',
                       color: '#e6edf3',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {pair?.baseToken?.symbol || '…'}
                   </span>
-                  <span style={{ color: '#484f58', fontSize: '13px' }}>
-                    / {pair?.quoteToken?.symbol}
+                  <span style={{ color: '#484f58', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                    /{pair?.quoteToken?.symbol}
                   </span>
                   {chainId && (
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '3px',
                         background: `${CHAIN_COLOR[chainId] || '#21262d'}22`,
                         color: CHAIN_COLOR[chainId] || '#e6edf3',
                         border: `1px solid ${CHAIN_COLOR[chainId] || '#21262d'}44`,
-                        fontSize: '11px',
+                        fontSize: '10px',
                         fontWeight: 700,
-                        padding: '4px 8px',
-                        borderRadius: '8px',
+                        padding: '3px 7px',
+                        borderRadius: '7px',
                         textTransform: 'uppercase',
+                        flexShrink: 0,
                       }}
                     >
                       <img
                         src={`/chains/${chainId}.png`}
                         alt={chainId}
-                        style={{
-                          width: '14px',
-                          height: '14px',
-                          borderRadius: '50%',
-                        }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
+                        style={{ width: '12px', height: '12px', borderRadius: '50%' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
                       {chainId}
                     </div>
                   )}
-                  {pair?.dexId && (
+                  {pair?.dexId && !isMobile && (
                     <div
                       style={{
                         display: 'flex',
@@ -722,19 +746,14 @@ export default function PairPage() {
                         padding: '3px 8px',
                         borderRadius: '8px',
                         textTransform: 'capitalize',
+                        flexShrink: 0,
                       }}
                     >
                       <img
                         src={`https://dd.dexscreener.com/ds-data/dexes/${pair.dexId}.png`}
                         alt={pair.dexId}
-                        style={{
-                          width: '14px',
-                          height: '14px',
-                          borderRadius: '50%',
-                        }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
+                        style={{ width: '14px', height: '14px', borderRadius: '50%' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
                       {pair.dexId}
                     </div>
@@ -743,27 +762,23 @@ export default function PairPage() {
 
                 {/* Price */}
                 {pair && (
-                  <div style={{ marginLeft: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
                     <span
                       style={{
                         fontFamily: 'JetBrains Mono, monospace',
-                        fontSize: '18px',
+                        fontSize: isMobile ? '15px' : '18px',
                         fontWeight: 800,
                         color: change24h >= 0 ? '#00d97e' : '#f04d4d',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {fmtUsd(price)}
                     </span>
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        color: '#8b949e',
-                        marginLeft: '8px',
-                        fontFamily: 'JetBrains Mono',
-                      }}
-                    >
-                      {priceNative.toFixed(8)} {pair.quoteToken?.symbol}
-                    </span>
+                    {!isMobile && (
+                      <span style={{ fontSize: '12px', color: '#8b949e', fontFamily: 'JetBrains Mono', whiteSpace: 'nowrap' }}>
+                        {priceNative.toFixed(8)} {pair.quoteToken?.symbol}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -820,7 +835,7 @@ export default function PairPage() {
                 style={{
                   borderBottom: '1px solid #21262d',
                   background: '#0b0e11',
-                  minHeight: '500px',
+                  minHeight: isMobile ? '300px' : '500px',
                   boxShadow: '0 4px 32px rgba(0,0,0,0.3)',
                 }}
               >
@@ -854,12 +869,16 @@ export default function PairPage() {
                 <div
                   style={{
                     display: 'flex',
-                    borderBottom: '1px solid #21262d',
-                    padding: '0 16px',
-                    gap: '8px',
-                    background: 'rgba(11,14,17,0.9)',
-                    backdropFilter: 'blur(10px)',
-                  }}
+                    borderBottom: '1px solid rgba(255,255,255,0.07)',
+                    padding: '0 12px',
+                    gap: '2px',
+                    background: 'rgba(9,12,16,0.95)',
+                    backdropFilter: 'blur(16px)',
+                    boxShadow: '0 1px 0 rgba(255,255,255,0.04)',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch' as any,
+                    scrollbarWidth: 'none',
+                  } as React.CSSProperties}
                 >
                   {(
                     [
@@ -867,13 +886,7 @@ export default function PairPage() {
                         id: 'txns',
                         label: 'Transactions',
                         icon: (
-                          <svg
-                            width="14"
-                            height="12"
-                            viewBox="0 0 14 12"
-                            fill="currentColor"
-                            style={{ flexShrink: 0 }}
-                          >
+                          <svg width="13" height="11" viewBox="0 0 14 12" fill="currentColor" style={{ flexShrink: 0 }}>
                             <rect y="0" width="14" height="1.5" rx="0.75" />
                             <rect y="5.25" width="14" height="1.5" rx="0.75" />
                             <rect y="10.5" width="14" height="1.5" rx="0.75" />
@@ -884,20 +897,8 @@ export default function PairPage() {
                         id: 'top',
                         label: 'Top Traders',
                         icon: (
-                          <svg
-                            width="13"
-                            height="13"
-                            viewBox="0 0 13 13"
-                            fill="none"
-                            style={{ flexShrink: 0 }}
-                          >
-                            <path
-                              d="M6.5 1v4.5M6.5 5.5L3 9M6.5 5.5L10 9M3 9v3M10 9v3M6.5 5.5V12"
-                              stroke="currentColor"
-                              strokeWidth="1.4"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
+                          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ flexShrink: 0 }}>
+                            <path d="M6.5 1v4.5M6.5 5.5L3 9M6.5 5.5L10 9M3 9v3M10 9v3M6.5 5.5V12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         ),
                       },
@@ -905,45 +906,11 @@ export default function PairPage() {
                         id: 'kols',
                         label: 'KOLs',
                         icon: (
-                          <svg
-                            width="12"
-                            height="14"
-                            viewBox="0 0 12 14"
-                            fill="none"
-                            style={{ flexShrink: 0 }}
-                          >
-                            <rect
-                              x="3.5"
-                              y="0.5"
-                              width="5"
-                              height="7"
-                              rx="2.5"
-                              fill="currentColor"
-                            />
-                            <path
-                              d="M1 8.5a5 5 0 0 0 10 0"
-                              stroke="currentColor"
-                              strokeWidth="1.4"
-                              strokeLinecap="round"
-                            />
-                            <line
-                              x1="6"
-                              y1="13.5"
-                              x2="6"
-                              y2="11"
-                              stroke="currentColor"
-                              strokeWidth="1.4"
-                              strokeLinecap="round"
-                            />
-                            <line
-                              x1="3.5"
-                              y1="13.5"
-                              x2="8.5"
-                              y2="13.5"
-                              stroke="currentColor"
-                              strokeWidth="1.4"
-                              strokeLinecap="round"
-                            />
+                          <svg width="12" height="14" viewBox="0 0 12 14" fill="none" style={{ flexShrink: 0 }}>
+                            <rect x="3.5" y="0.5" width="5" height="7" rx="2.5" fill="currentColor" />
+                            <path d="M1 8.5a5 5 0 0 0 10 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                            <line x1="6" y1="13.5" x2="6" y2="11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                            <line x1="3.5" y1="13.5" x2="8.5" y2="13.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                           </svg>
                         ),
                       },
@@ -951,13 +918,7 @@ export default function PairPage() {
                         id: 'holders',
                         label: `Holders${holders.length > 0 ? ' (' + holders.length.toLocaleString() + ')' : ''}`,
                         icon: (
-                          <svg
-                            width="11"
-                            height="13"
-                            viewBox="0 0 11 13"
-                            fill="currentColor"
-                            style={{ flexShrink: 0 }}
-                          >
+                          <svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor" style={{ flexShrink: 0 }}>
                             <path d="M5.5 0.5L11 4.5L8.8 12H2.2L0 4.5Z" />
                           </svg>
                         ),
@@ -966,56 +927,45 @@ export default function PairPage() {
                         id: 'bubble',
                         label: 'Bubblemaps',
                         icon: (
-                          <svg
-                            width="16"
-                            height="9"
-                            viewBox="0 0 16 9"
-                            fill="none"
-                            style={{ flexShrink: 0 }}
-                          >
-                            <path
-                              d="M0.5 6.5C1.5 6.5 2 3 3.5 3C5 3 5.5 6.5 7 6.5C8.5 6.5 9 3 10.5 3C12 3 12.5 6.5 14 6.5C14.8 6.5 15.3 4.5 15.5 3"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
+                          <svg width="16" height="9" viewBox="0 0 16 9" fill="none" style={{ flexShrink: 0 }}>
+                            <path d="M0.5 6.5C1.5 6.5 2 3 3.5 3C5 3 5.5 6.5 7 6.5C8.5 6.5 9 3 10.5 3C12 3 12.5 6.5 14 6.5C14.8 6.5 15.3 4.5 15.5 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         ),
                       },
                     ] as { id: string; label: string; icon: React.ReactNode }[]
-                  ).map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => {
-                        if (t.id === 'bubble') {
-                          setShowBubblemaps(true);
-                          return;
-                        }
-                        setTxTab(t.id as any);
-                      }}
-                      style={{
-                        padding: '12px 14px',
-                        border: 'none',
-                        background: 'transparent',
-                        color: txTab === t.id ? '#e6edf3' : '#8b949e',
-                        borderBottom:
-                          txTab === t.id
-                            ? '2px solid #4f8ef7'
-                            : '2px solid transparent',
-                        fontWeight: txTab === t.id ? 600 : 400,
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {t.icon}
-                      {t.label}
-                    </button>
-                  ))}
+                  ).map((t) => {
+                    const isActive = txTab === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          if (t.id === 'bubble') { setShowBubblemaps(true); return; }
+                          setTxTab(t.id as any);
+                        }}
+                        style={{
+                          padding: '11px 13px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: isActive ? '#ffffff' : '#484f58',
+                          borderBottom: isActive ? '2px solid #4f8ef7' : '2px solid transparent',
+                          fontWeight: isActive ? 700 : 500,
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          whiteSpace: 'nowrap',
+                          transition: 'color 0.2s',
+                          position: 'relative',
+                        }}
+                        onMouseOver={(e) => { if (!isActive) e.currentTarget.style.color = '#8b949e'; }}
+                        onMouseOut={(e) => { if (!isActive) e.currentTarget.style.color = '#484f58'; }}
+                      >
+                        {t.icon}
+                        {t.label}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* API Notice / Warning */}
@@ -1023,98 +973,182 @@ export default function PairPage() {
                   <div
                     style={{
                       padding: '8px 16px',
-                      background: 'rgba(240,185,77,0.1)',
-                      borderBottom: '1px solid rgba(240,185,77,0.2)',
+                      background: 'rgba(210,153,34,0.08)',
+                      borderBottom: '1px solid rgba(210,153,34,0.18)',
                       fontSize: '11px',
-                      color: '#f0b94d',
+                      color: '#d29922',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
+                      backdropFilter: 'blur(8px)',
                     }}
                   >
-                    <span>⚠️</span>
-                    <span>
+                    <span
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        background: 'rgba(210,153,34,0.15)',
+                        border: '1px solid rgba(210,153,34,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '10px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      ⚠
+                    </span>
+                    <span style={{ color: '#8b949e' }}>
                       {tradesError.includes('429')
-                        ? 'DEXScreener/GeckoTerminal rate limit hit. Data may be delayed.'
+                        ? 'Rate limit hit — data may be delayed.'
                         : tradesError}
                     </span>
                     <button
                       onClick={() => fetchTrades()}
                       style={{
                         marginLeft: 'auto',
-                        background: 'none',
-                        border: 'none',
+                        background: 'rgba(79,142,247,0.1)',
+                        border: '1px solid rgba(79,142,247,0.25)',
+                        borderRadius: '6px',
                         color: '#4f8ef7',
                         cursor: 'pointer',
                         fontSize: '11px',
-                        textDecoration: 'underline',
+                        fontWeight: 700,
+                        padding: '3px 10px',
+                        flexShrink: 0,
+                        transition: 'all 0.2s',
                       }}
+                      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(79,142,247,0.2)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(79,142,247,0.1)'; }}
                     >
                       Retry
                     </button>
                   </div>
                 )}
 
-                {/* Tab Content Panes - Fixed height with scrollbar */}
+                {/* Tab Content Panes */}
                 <div
                   className="custom-scrollbar"
                   style={{
-                    height: '400px',
+                    height: isMobile ? '360px' : '400px',
                     overflowY: 'auto',
                     position: 'relative',
-                    borderBottom: '1px solid #21262d',
-                    background: '#0b0e11',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(9,12,16,0.8)',
                   }}
                 >
                   {txTab === 'txns' && (
-                    <>
-                      {/* Table header */}
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns:
-                            'minmax(60px, 0.8fr) minmax(50px, 0.6fr) minmax(100px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 1.2fr) minmax(90px, 1.2fr) minmax(80px, 0.8fr)',
-                          padding: '8px 16px',
-                          fontSize: '11px',
-                          color: '#484f58',
-                          borderBottom: '1px solid #21262d',
-                          background: '#0b0e11',
-                          fontWeight: 600,
-                          letterSpacing: '0.05em',
-                          position: 'sticky',
-                          top: 0,
-                          zIndex: 1,
-                        }}
-                      >
-                        <span>DATE</span>
-                        <span>TYPE</span>
-                        <span style={{ textAlign: 'right' }}>USD</span>
-                        <span style={{ textAlign: 'right' }}>
-                          {pair?.baseToken?.symbol || 'TOKEN'}
-                        </span>
-                        <span style={{ textAlign: 'right' }}>
-                          {pair?.quoteToken?.symbol || 'NATIVE'}
-                        </span>
-                        <span style={{ textAlign: 'right' }}>PRICE</span>
-                        <span style={{ textAlign: 'right' }}>MAKER</span>
-                        <span style={{ textAlign: 'right' }}>TXN</span>
+                    trades.length === 0 ? (
+                      <div style={{ padding: '50px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                          {loading ? '⌛' : '📭'}
+                        </div>
+                        <div style={{ color: '#484f58', fontSize: '13px', fontWeight: 500 }}>
+                          {loading ? 'Loading transactions…' : 'No recent transactions found for this pair.'}
+                        </div>
                       </div>
+                    ) : isMobile ? (
+                      /* ===== MOBILE: compact 2-line rows ===== */
+                      <div>
+                        {trades.map((t, i) => {
+                          const isBuy = t.type === 'Buy';
+                          const isNew = newTradeHashes.has(t.txHash);
+                          return (
+                            <div
+                              key={t.txHash || i}
+                              className={`slide-in ${isNew ? (isBuy ? 'flash-buy' : 'flash-sell') : ''}`}
+                              style={{
+                                borderLeft: `3px solid ${isBuy ? '#00d97e' : '#f04d4d'}`,
+                                padding: '10px 14px',
+                                borderBottom: '1px solid rgba(255,255,255,0.035)',
+                                background: isBuy ? 'rgba(0,217,126,0.025)' : 'rgba(240,77,77,0.025)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                              }}
+                            >
+                              {/* Type badge */}
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 40,
+                                  fontSize: '10px',
+                                  fontWeight: 900,
+                                  letterSpacing: '0.05em',
+                                  color: isBuy ? '#00d97e' : '#f04d4d',
+                                  background: isBuy ? 'rgba(0,217,126,0.1)' : 'rgba(240,77,77,0.1)',
+                                  border: `1px solid ${isBuy ? 'rgba(0,217,126,0.2)' : 'rgba(240,77,77,0.2)'}`,
+                                  borderRadius: '5px',
+                                  padding: '4px 0',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {t.type.toUpperCase()}
+                              </span>
 
-                      {trades.length === 0 ? (
+                              {/* Main info */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', fontWeight: 700, color: isBuy ? '#00d97e' : '#f04d4d' }}>
+                                    {fmtNum(t.tokenAmount, 0)} <span style={{ fontSize: '10px', color: '#484f58', fontWeight: 600 }}>{pair?.baseToken?.symbol}</span>
+                                  </span>
+                                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '13px', fontWeight: 800, color: '#e6edf3' }}>
+                                    {fmtUsd(t.usd)}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ color: '#484f58', fontSize: '11px' }}>{t.age}</span>
+                                  <a
+                                    href={explorerBase + t.txHash}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ color: '#4f8ef7', textDecoration: 'none', fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}
+                                  >
+                                    {shorten(t.txHash)} ↗
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* ===== DESKTOP: 8-column grid ===== */
+                      <div className="scroll-x">
+                      <div style={{ minWidth: '680px' }}>
+                        {/* Table header */}
                         <div
                           style={{
-                            padding: '40px 20px',
-                            textAlign: 'center',
+                            display: 'grid',
+                            gridTemplateColumns: 'minmax(60px,0.8fr) minmax(50px,0.6fr) minmax(100px,1.2fr) minmax(100px,1fr) minmax(100px,1fr) minmax(100px,1.2fr) minmax(90px,1.2fr) minmax(80px,0.8fr)',
+                            padding: '9px 16px',
+                            fontSize: '10px',
                             color: '#484f58',
-                            fontSize: '13px',
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            background: 'rgba(9,12,16,0.97)',
+                            fontWeight: 700,
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 1,
+                            backdropFilter: 'blur(12px)',
                           }}
                         >
-                          {loading
-                            ? '⌛ Loading transactions…'
-                            : 'No recent transactions found for this pair.'}
+                          <span>Date</span>
+                          <span>Type</span>
+                          <span style={{ textAlign: 'right' }}>USD</span>
+                          <span style={{ textAlign: 'right' }}>{pair?.baseToken?.symbol || 'Token'}</span>
+                          <span style={{ textAlign: 'right' }}>{pair?.quoteToken?.symbol || 'Native'}</span>
+                          <span style={{ textAlign: 'right' }}>Price</span>
+                          <span style={{ textAlign: 'right' }}>Maker</span>
+                          <span style={{ textAlign: 'right' }}>Txn</span>
                         </div>
-                      ) : (
-                        trades.map((t, i) => {
+                        {trades.map((t, i) => {
                           const isBuy = t.type === 'Buy';
                           const isNew = newTradeHashes.has(t.txHash);
                           return (
@@ -1123,98 +1157,40 @@ export default function PairPage() {
                               className={`slide-in ${isNew ? (isBuy ? 'flash-buy' : 'flash-sell') : ''}`}
                               style={{
                                 display: 'grid',
-                                gridTemplateColumns:
-                                  'minmax(60px, 0.8fr) minmax(50px, 0.6fr) minmax(100px, 1.2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 1.2fr) minmax(90px, 1.2fr) minmax(80px, 0.8fr)',
-                                padding: '10px 16px',
-                                borderBottom: '1px solid #161b22',
-                                borderLeft: isBuy ? '3px solid #00d97e' : '3px solid #f04d4d',
+                                gridTemplateColumns: 'minmax(60px,0.8fr) minmax(50px,0.6fr) minmax(100px,1.2fr) minmax(100px,1fr) minmax(100px,1fr) minmax(100px,1.2fr) minmax(90px,1.2fr) minmax(80px,0.8fr)',
+                                padding: '9px 16px',
+                                borderBottom: '1px solid rgba(255,255,255,0.035)',
+                                borderLeft: `3px solid ${isBuy ? '#00d97e' : '#f04d4d'}`,
                                 fontSize: '12px',
-                                background: isBuy
-                                  ? 'rgba(0,217,126,0.02)'
-                                  : 'rgba(240,77,77,0.02)',
+                                background: isBuy ? 'rgba(0,217,126,0.025)' : 'rgba(240,77,77,0.025)',
                                 alignItems: 'center',
-                                transition: 'background 0.3s',
+                                transition: 'background 0.2s',
                               }}
+                              onMouseOver={(e) => { e.currentTarget.style.background = isBuy ? 'rgba(0,217,126,0.05)' : 'rgba(240,77,77,0.05)'; }}
+                              onMouseOut={(e) => { e.currentTarget.style.background = isBuy ? 'rgba(0,217,126,0.025)' : 'rgba(240,77,77,0.025)'; }}
                             >
-                              <span style={{ color: '#8b949e' }}>{t.age}</span>
-                              <span
-                                className={isBuy ? 'glow-buy' : 'glow-sell'}
-                                style={{
-                                  fontWeight: 800,
-                                  color: isBuy ? '#00d97e' : '#f04d4d',
-                                  fontSize: '11px',
-                                  textAlign: 'center',
-                                }}
-                              >
-                                {t.type.toUpperCase()}
+                              <span style={{ color: '#484f58', fontSize: '11px', fontFamily: 'JetBrains Mono, monospace' }}>{t.age}</span>
+                              <span>
+                                <span className={isBuy ? 'glow-buy' : 'glow-sell'} style={{ fontWeight: 800, color: isBuy ? '#00d97e' : '#f04d4d', fontSize: '10px', letterSpacing: '0.06em', background: isBuy ? 'rgba(0,217,126,0.1)' : 'rgba(240,77,77,0.1)', border: `1px solid ${isBuy ? 'rgba(0,217,126,0.2)' : 'rgba(240,77,77,0.2)'}`, borderRadius: '4px', padding: '2px 6px' }}>
+                                  {t.type.toUpperCase()}
+                                </span>
                               </span>
-                              <span
-                                style={{
-                                  textAlign: 'right',
-                                  fontFamily: 'JetBrains Mono',
-                                  color: '#e6edf3',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {fmtUsd(t.usd)}
-                              </span>
-                              <span
-                                style={{
-                                  textAlign: 'right',
-                                  fontFamily: 'JetBrains Mono',
-                                  color: isBuy ? '#00d97e' : '#f04d4d',
-                                }}
-                              >
-                                {fmtNum(t.tokenAmount, 0)}
-                              </span>
-                              <span
-                                style={{
-                                  textAlign: 'right',
-                                  fontFamily: 'JetBrains Mono',
-                                  color: '#8b949e',
-                                }}
-                              >
-                                {fmtNum(t.nativeAmount, 4)}
-                              </span>
-                              <span
-                                style={{
-                                  textAlign: 'right',
-                                  fontFamily: 'JetBrains Mono',
-                                  color: '#e6edf3',
-                                }}
-                              >
-                                {fmtUsd(t.priceUsd)}
-                              </span>
-                              <span
-                                style={{
-                                  textAlign: 'right',
-                                  fontFamily: 'JetBrains Mono',
-                                  color: '#4f8ef7',
-                                }}
-                              >
-                                {shorten(t.maker)}
-                              </span>
+                              <span style={{ textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: '#e6edf3', fontWeight: 600, fontSize: '12px' }}>{fmtUsd(t.usd)}</span>
+                              <span style={{ textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: isBuy ? '#00d97e' : '#f04d4d', fontSize: '12px' }}>{fmtNum(t.tokenAmount, 0)}</span>
+                              <span style={{ textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: '#6e7681', fontSize: '12px' }}>{fmtNum(t.nativeAmount, 4)}</span>
+                              <span style={{ textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: '#e6edf3', fontSize: '12px' }}>{fmtUsd(t.priceUsd)}</span>
+                              <span style={{ textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', color: '#4f8ef7', fontSize: '11px' }}>{shorten(t.maker)}</span>
                               <span style={{ textAlign: 'right' }}>
-                                <a
-                                  href={explorerBase + t.txHash}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  style={{
-                                    color: '#4f8ef7',
-                                    textDecoration: 'none',
-                                  }}
-                                >
-                                  <span style={{ textDecoration: 'underline' }}>
-                                    {shorten(t.txHash)}
-                                  </span>{' '}
-                                  ↗
+                                <a href={explorerBase + t.txHash} target="_blank" rel="noreferrer" style={{ color: '#4f8ef7', textDecoration: 'none', fontSize: '11px', fontFamily: 'JetBrains Mono, monospace' }} onMouseOver={(e: any) => { e.currentTarget.style.color = '#79b8ff'; }} onMouseOut={(e: any) => { e.currentTarget.style.color = '#4f8ef7'; }}>
+                                  {shorten(t.txHash)} ↗
                                 </a>
                               </span>
                             </div>
                           );
-                        })
-                      )}
-                    </>
+                        })}
+                      </div>
+                      </div>
+                    )
                   )}
 
                   {txTab === 'top' && (
@@ -1916,16 +1892,19 @@ export default function PairPage() {
 
             {/* ===== RIGHT: Token Info Panel ===== */}
             <div
-              className="custom-scrollbar"
+              className="custom-scrollbar pair-right-panel"
               style={{
-                width: '320px',
+                width: isMobile ? '100%' : '320px',
                 flexShrink: 0,
-                borderLeft: '1px solid rgba(255,255,255,0.07)',
+                borderLeft: isMobile ? 'none' : '1px solid rgba(255,255,255,0.07)',
+                borderTop: isMobile ? '1px solid rgba(255,255,255,0.07)' : 'none',
                 background: 'rgba(11,14,17,0.6)',
                 backdropFilter: 'blur(12px)',
                 display: 'flex',
                 flexDirection: 'column',
                 overflowY: 'auto',
+                overflowX: 'hidden',
+                minWidth: 0,
               }}
             >
               {pair ? (
@@ -2064,19 +2043,18 @@ export default function PairPage() {
                         onClick={() => setActiveTab(t)}
                         style={{
                           flex: 1,
-                          padding: '7px 0',
+                          padding: '8px 0',
                           background: activeTab === t
                             ? 'rgba(79,142,247,0.15)'
-                            : 'transparent',
-                          border: activeTab === t
-                            ? '1px solid rgba(79,142,247,0.3)'
-                            : '1px solid transparent',
-                          borderRadius: '999px',
+                            : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${activeTab === t ? 'rgba(79,142,247,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                          borderRadius: '9px',
                           color: activeTab === t ? '#4f8ef7' : '#8b949e',
-                          fontSize: '11px',
+                          fontSize: isMobile ? '13px' : '11px',
                           fontWeight: 700,
                           cursor: 'pointer',
                           transition: 'all 0.2s',
+                          minWidth: 0,
                         }}
                       >
                         {t}
@@ -2087,9 +2065,9 @@ export default function PairPage() {
                   {/* Price Blocks */}
                   <div
                     style={{
-                      padding: '12px',
+                      padding: '10px 12px',
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
+                      gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr',
                       gap: '8px',
                       borderBottom: '1px solid rgba(255,255,255,0.06)',
                     }}
@@ -2171,133 +2149,100 @@ export default function PairPage() {
                   {/* Metrics 3-Col Grid */}
                   <div
                     style={{
-                      padding: '12px',
+                      padding: '10px 12px',
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr 1fr',
                       gap: '8px',
                       borderBottom: '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        background: 'rgba(255,255,255,0.03)',
-                        borderRadius: '8px',
-                        padding: '8px 4px',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                      }}
-                    >
+                    {[
+                      {
+                        label: 'Liquidity',
+                        value: fmtUsd(pair.liquidity?.usd),
+                        color: '#4f8ef7',
+                        icon: (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        label: 'FDV',
+                        value: fmtUsd(pair.fdv),
+                        color: '#a371f7',
+                        icon: (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        label: 'MCap',
+                        value: fmtUsd(pair.marketCap),
+                        color: '#00d97e',
+                        icon: (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                          </svg>
+                        ),
+                      },
+                    ].map((m) => (
                       <div
+                        key={m.label}
                         style={{
-                          fontSize: '16px',
-                          marginBottom: '4px',
+                          textAlign: 'center',
+                          background: `${m.color}08`,
+                          borderRadius: '10px',
+                          padding: '10px 6px 8px',
+                          border: `1px solid ${m.color}20`,
+                          borderTop: `2px solid ${m.color}60`,
+                          overflow: 'hidden',
                         }}
                       >
-                        💧
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: m.color,
+                            marginBottom: '5px',
+                            opacity: 0.8,
+                          }}
+                        >
+                          {m.icon}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '9px',
+                            color: '#484f58',
+                            marginBottom: '4px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {m.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: 900,
+                            color: '#fff',
+                            fontFamily: 'JetBrains Mono, monospace',
+                            letterSpacing: '-0.02em',
+                          }}
+                        >
+                          {m.value}
+                        </div>
                       </div>
-                      <div
-                        style={{
-                          fontSize: '9px',
-                          color: '#8b949e',
-                          marginBottom: '4px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        Liquidity
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 800,
-                          color: '#fff',
-                        }}
-                      >
-                        {fmtUsd(pair.liquidity?.usd)}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        background: 'rgba(255,255,255,0.03)',
-                        borderRadius: '8px',
-                        padding: '8px 4px',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: '16px',
-                          marginBottom: '4px',
-                        }}
-                      >
-                        📊
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '9px',
-                          color: '#8b949e',
-                          marginBottom: '4px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        FDV
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 800,
-                          color: '#fff',
-                        }}
-                      >
-                        {fmtUsd(pair.fdv)}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        background: 'rgba(255,255,255,0.03)',
-                        borderRadius: '8px',
-                        padding: '8px 4px',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: '16px',
-                          marginBottom: '4px',
-                        }}
-                      >
-                        🏦
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '9px',
-                          color: '#8b949e',
-                          marginBottom: '4px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        MCap
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 800,
-                          color: '#fff',
-                        }}
-                      >
-                        {fmtUsd(pair.marketCap)}
-                      </div>
-                    </div>
+                    ))}
                   </div>
 
                   {/* Performance Grid */}
                   <div
                     style={{
-                      padding: '12px 16px',
+                      padding: '10px 12px',
                       borderBottom: '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
@@ -2305,7 +2250,7 @@ export default function PairPage() {
                       style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 1fr 1fr 1fr',
-                        gap: '8px',
+                        gap: '6px',
                         textAlign: 'center',
                       }}
                     >
@@ -2317,30 +2262,37 @@ export default function PairPage() {
                       ].map((item) => {
                         const pos = (item.v || 0) >= 0;
                         return (
-                          <div key={item.label}>
+                          <div
+                            key={item.label}
+                            style={{
+                              background: pos ? 'rgba(0,217,126,0.06)' : 'rgba(240,77,77,0.06)',
+                              border: `1px solid ${pos ? 'rgba(0,217,126,0.18)' : 'rgba(240,77,77,0.18)'}`,
+                              borderRadius: '8px',
+                              padding: '7px 4px',
+                            }}
+                          >
                             <div
                               style={{
-                                fontSize: '10px',
-                                color: '#8b949e',
-                                marginBottom: '4px',
+                                fontSize: '9px',
+                                color: '#484f58',
+                                marginBottom: '5px',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.06em',
                               }}
                             >
                               {item.label}
                             </div>
                             <div
                               style={{
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 fontWeight: 800,
                                 color: pos ? '#00d97e' : '#f04d4d',
-                                background: pos ? 'rgba(0,217,126,0.12)' : 'rgba(240,77,77,0.12)',
-                                border: `1px solid ${pos ? 'rgba(0,217,126,0.25)' : 'rgba(240,77,77,0.25)'}`,
-                                borderRadius: '999px',
-                                padding: '3px 4px',
-                                display: 'inline-block',
+                                fontFamily: 'JetBrains Mono, monospace',
+                                letterSpacing: '-0.01em',
                               }}
                             >
-                              {pos ? '+' : ''}
-                              {item.v?.toFixed(2) ?? '–'}%
+                              {pos ? '+' : ''}{item.v?.toFixed(2) ?? '–'}%
                             </div>
                           </div>
                         );
@@ -2349,12 +2301,9 @@ export default function PairPage() {
                   </div>
 
                   {/* Stats with Bars */}
-                  <div style={{ padding: '16px' }}>
+                  <div style={{ padding: '12px 14px' }}>
                     {(() => {
-                      const stats = (pair.txns as any)?.[timeKey] || {
-                        buys: 0,
-                        sells: 0,
-                      };
+                      const stats = (pair.txns as any)?.[timeKey] || { buys: 0, sells: 0 };
                       const vol = (pair.volume as any)?.[timeKey] || 0;
                       const buys = stats.buys || 0;
                       const sells = stats.sells || 0;
@@ -2362,187 +2311,50 @@ export default function PairPage() {
                       const bRatio = totalTx > 0 ? buys / totalTx : 0.5;
                       const sRatio = totalTx > 0 ? sells / totalTx : 0.5;
 
+                      const StatRow = ({
+                        label, total, leftLabel, leftVal, rightLabel, rightVal, buysV, sellsV, isLast
+                      }: {
+                        label: string; total: string; leftLabel: string; leftVal: string;
+                        rightLabel: string; rightVal: string; buysV: number; sellsV: number; isLast?: boolean;
+                      }) => (
+                        <div
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '10px',
+                            background: 'rgba(255,255,255,0.025)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            marginBottom: isLast ? 0 : '8px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px', flexWrap: 'nowrap' }}>
+                            <div style={{ flexShrink: 0 }}>
+                              <div style={{ fontSize: '9px', color: '#484f58', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>
+                                {label}
+                              </div>
+                              <div style={{ fontSize: '17px', fontWeight: 900, color: '#fff', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                                {total}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', textAlign: 'right', flexShrink: 0 }}>
+                              <div>
+                                <div style={{ fontSize: '9px', color: '#00d97e', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px', whiteSpace: 'nowrap' }}>{leftLabel}</div>
+                                <div style={{ fontSize: '13px', fontWeight: 800, color: '#00d97e', fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap' }}>{leftVal}</div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '9px', color: '#f04d4d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px', whiteSpace: 'nowrap' }}>{rightLabel}</div>
+                                <div style={{ fontSize: '13px', fontWeight: 800, color: '#f04d4d', fontFamily: 'JetBrains Mono, monospace', whiteSpace: 'nowrap' }}>{rightVal}</div>
+                              </div>
+                            </div>
+                          </div>
+                          <StatBar buys={buysV} sells={sellsV} />
+                        </div>
+                      );
+
                       return (
                         <>
-                          {/* TXNS */}
-                          <div
-                            style={{
-                              display: 'flex',
-                              gap: '16px',
-                              marginBottom: '20px',
-                            }}
-                          >
-                            <div style={{ width: '80px' }}>
-                              <div
-                                style={{
-                                  fontSize: '10px',
-                                  color: '#8b949e',
-                                  marginBottom: '4px',
-                                }}
-                              >
-                                TXNS
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: '16px',
-                                  fontWeight: 800,
-                                  color: '#fff',
-                                }}
-                              >
-                                {fmtNum(totalTx, 0)}
-                              </div>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  fontSize: '10px',
-                                  color: '#8b949e',
-                                }}
-                              >
-                                <span>BUYS</span>
-                                <span>SELLS</span>
-                              </div>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  fontSize: '14px',
-                                  fontWeight: 700,
-                                  marginTop: '2px',
-                                }}
-                              >
-                                <span style={{ color: '#fff' }}>
-                                  {fmtNum(buys, 0)}
-                                </span>
-                                <span style={{ color: '#fff' }}>
-                                  {fmtNum(sells, 0)}
-                                </span>
-                              </div>
-                              <StatBar buys={buys} sells={sells} />
-                            </div>
-                          </div>
-
-                          {/* VOLUME */}
-                          <div
-                            style={{
-                              display: 'flex',
-                              gap: '16px',
-                              marginBottom: '20px',
-                            }}
-                          >
-                            <div style={{ width: '80px' }}>
-                              <div
-                                style={{
-                                  fontSize: '10px',
-                                  color: '#8b949e',
-                                  marginBottom: '4px',
-                                }}
-                              >
-                                VOLUME
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: '16px',
-                                  fontWeight: 800,
-                                  color: '#fff',
-                                }}
-                              >
-                                {fmtUsd(vol)}
-                              </div>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  fontSize: '10px',
-                                  color: '#8b949e',
-                                }}
-                              >
-                                <span>BUY VOL</span>
-                                <span>SELL VOL</span>
-                              </div>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  fontSize: '14px',
-                                  fontWeight: 700,
-                                  marginTop: '2px',
-                                }}
-                              >
-                                <span style={{ color: '#fff' }}>
-                                  {fmtUsd(vol * bRatio)}
-                                </span>
-                                <span style={{ color: '#fff' }}>
-                                  {fmtUsd(vol * sRatio)}
-                                </span>
-                              </div>
-                              <StatBar
-                                buys={bRatio * 100}
-                                sells={sRatio * 100}
-                              />
-                            </div>
-                          </div>
-
-                          {/* MAKERS */}
-                          <div style={{ display: 'flex', gap: '16px' }}>
-                            <div style={{ width: '80px' }}>
-                              <div
-                                style={{
-                                  fontSize: '10px',
-                                  color: '#8b949e',
-                                  marginBottom: '4px',
-                                }}
-                              >
-                                MAKERS
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: '16px',
-                                  fontWeight: 800,
-                                  color: '#fff',
-                                }}
-                              >
-                                {fmtNum(totalTx * 0.4, 0)}
-                              </div>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  fontSize: '10px',
-                                  color: '#8b949e',
-                                }}
-                              >
-                                <span>BUYERS</span>
-                                <span>SELLERS</span>
-                              </div>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  fontSize: '14px',
-                                  fontWeight: 700,
-                                  marginTop: '2px',
-                                }}
-                              >
-                                <span style={{ color: '#fff' }}>
-                                  {fmtNum(totalTx * 0.4 * bRatio, 0)}
-                                </span>
-                                <span style={{ color: '#fff' }}>
-                                  {fmtNum(totalTx * 0.4 * sRatio, 0)}
-                                </span>
-                              </div>
-                              <StatBar
-                                buys={bRatio * 100}
-                                sells={sRatio * 100}
-                              />
-                            </div>
-                          </div>
+                          <StatRow label="TXNS" total={fmtNum(totalTx, 0)} leftLabel="BUYS" leftVal={fmtNum(buys, 0)} rightLabel="SELLS" rightVal={fmtNum(sells, 0)} buysV={buys} sellsV={sells} />
+                          <StatRow label="VOLUME" total={fmtUsd(vol)} leftLabel="BUY VOL" leftVal={fmtUsd(vol * bRatio)} rightLabel="SELL VOL" rightVal={fmtUsd(vol * sRatio)} buysV={bRatio * 100} sellsV={sRatio * 100} />
+                          <StatRow label="MAKERS" total={fmtNum(totalTx * 0.4, 0)} leftLabel="BUYERS" leftVal={fmtNum(totalTx * 0.4 * bRatio, 0)} rightLabel="SELLERS" rightVal={fmtNum(totalTx * 0.4 * sRatio, 0)} buysV={bRatio * 100} sellsV={sRatio * 100} isLast />
                         </>
                       );
                     })()}
@@ -2551,48 +2363,43 @@ export default function PairPage() {
                   {/* Actions */}
                   <div
                     style={{
-                      padding: '16px',
+                      padding: '14px',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '10px',
-                      background: '#0b0e11',
-                      borderTop: '1px solid #21262d',
+                      gap: '9px',
+                      background: 'rgba(9,12,16,0.8)',
+                      borderTop: '1px solid rgba(255,255,255,0.07)',
                     }}
                   >
                     {showTradePanel ? (
                       <div
                         style={{
-                          background: '#1c2128',
-                          borderRadius: '12px',
+                          background: 'rgba(255,255,255,0.03)',
+                          borderRadius: '14px',
                           padding: '16px',
-                          border: '1px solid #21262d',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          backdropFilter: 'blur(12px)',
                         }}
                       >
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            marginBottom: '16px',
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: '14px',
-                              fontWeight: 700,
-                              color: '#e6edf3',
-                            }}
-                          >
-                            {tradePanelType === 'buy' ? 'Buy' : 'Sell'} Token
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 800, color: tradePanelType === 'buy' ? '#00d97e' : '#f04d4d', letterSpacing: '-0.2px' }}>
+                            {tradePanelType === 'buy' ? '↑ Buy' : '↓ Sell'} {pair?.baseToken.symbol}
                           </span>
                           <button
                             onClick={() => setShowTradePanel(false)}
                             style={{
-                              background: 'none',
-                              border: 'none',
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.1)',
                               color: '#8b949e',
                               cursor: 'pointer',
-                              fontSize: '18px',
+                              fontSize: '14px',
+                              width: 28, height: 28,
+                              borderRadius: '50%',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.2s',
                             }}
+                            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#fff'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#8b949e'; }}
                           >
                             ×
                           </button>
@@ -2600,195 +2407,126 @@ export default function PairPage() {
 
                         <div
                           style={{
-                            background: '#0b0e11',
-                            borderRadius: '8px',
+                            background: 'rgba(0,0,0,0.4)',
+                            borderRadius: '10px',
                             padding: '12px',
                             marginBottom: '12px',
-                            border: '1px solid #21262d',
+                            border: '1px solid rgba(255,255,255,0.08)',
                           }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              fontSize: '11px',
-                              color: '#8b949e',
-                              marginBottom: '4px',
-                            }}
-                          >
-                            <span>Amount</span>
-                            <span>Balance: 0.00</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#484f58', marginBottom: '6px', fontWeight: 600 }}>
+                            <span>AMOUNT</span>
+                            <span>BALANCE: 0.00</span>
                           </div>
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                            }}
-                          >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <input
                               type="text"
                               value={tradeAmount}
                               onChange={(e) => setTradeAmount(e.target.value)}
                               style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#fff',
-                                fontSize: '20px',
-                                fontWeight: 700,
-                                width: '100%',
-                                outline: 'none',
+                                background: 'none', border: 'none', color: '#fff',
+                                fontSize: '22px', fontWeight: 800, width: '100%',
+                                outline: 'none', fontFamily: 'JetBrains Mono, monospace',
+                                letterSpacing: '-0.03em',
                               }}
                             />
-                            <span
-                              style={{ color: '#8b949e', fontSize: '14px' }}
-                            >
+                            <span style={{ color: '#484f58', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>
                               {pair?.baseToken.symbol}
                             </span>
                           </div>
                         </div>
 
                         <button
-                          onClick={() => {
-                            setIsTrading(true);
-                            setShowTradePanel(false);
-                          }}
+                          onClick={() => { setIsTrading(true); setShowTradePanel(false); }}
                           style={{
-                            width: '100%',
-                            height: '48px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background:
-                              tradePanelType === 'buy' ? '#00d97e' : '#f04d4d',
-                            color: '#000',
-                            fontWeight: 800,
-                            fontSize: '16px',
-                            cursor: 'pointer',
+                            width: '100%', height: '48px', borderRadius: '12px', border: 'none',
+                            background: tradePanelType === 'buy'
+                              ? 'linear-gradient(135deg, #00d97e 0%, #00a86b 100%)'
+                              : 'linear-gradient(135deg, #f04d4d 0%, #c0392b 100%)',
+                            color: '#000', fontWeight: 900, fontSize: '15px',
+                            cursor: 'pointer', letterSpacing: '0.03em',
+                            boxShadow: tradePanelType === 'buy' ? '0 8px 24px rgba(0,217,126,0.4)' : '0 8px 24px rgba(240,77,77,0.4)',
+                            transition: 'all 0.2s',
                           }}
+                          onMouseOver={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}
                         >
-                          Swap
+                          Confirm Swap
                         </button>
                       </div>
                     ) : (
                       <>
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        {/* Watchlist + Alerts */}
+                        <div style={{ display: 'flex', gap: '9px' }}>
                           <button
                             onClick={toggleWatchlist}
                             style={{
-                              flex: 1,
-                              height: '48px',
-                              borderRadius: '8px',
-                              border: '1px solid #21262d',
-                              background: isInWatchlist
-                                ? 'rgba(0,217,126,0.1)'
-                                : '#1c2128',
-                              color: isInWatchlist ? '#00d97e' : '#e6edf3',
-                              fontSize: '14px',
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '8px',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s',
+                              flex: 1, height: '44px', borderRadius: '10px',
+                              border: `1px solid ${isInWatchlist ? 'rgba(0,217,126,0.3)' : 'rgba(255,255,255,0.09)'}`,
+                              background: isInWatchlist ? 'rgba(0,217,126,0.1)' : 'rgba(255,255,255,0.04)',
+                              color: isInWatchlist ? '#00d97e' : '#8b949e',
+                              fontSize: '13px', fontWeight: 700,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+                              cursor: 'pointer', transition: 'all 0.2s',
+                              boxShadow: isInWatchlist ? '0 0 16px rgba(0,217,126,0.12)' : 'none',
                             }}
+                            onMouseOver={(e) => { if (!isInWatchlist) { e.currentTarget.style.color = '#e6edf3'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; } }}
+                            onMouseOut={(e) => { if (!isInWatchlist) { e.currentTarget.style.color = '#8b949e'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; } }}
                           >
-                            <span style={{ fontSize: '18px' }}>
-                              {isInWatchlist ? '★' : '☆'}
-                            </span>
+                            <span style={{ fontSize: '15px' }}>{isInWatchlist ? '★' : '☆'}</span>
                             Watchlist
                           </button>
                           <button
                             style={{
-                              flex: 1,
-                              height: '48px',
-                              borderRadius: '8px',
-                              border: '1px solid #21262d',
-                              background: '#1c2128',
-                              color: '#e6edf3',
-                              fontSize: '14px',
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '8px',
-                              cursor: 'pointer',
+                              flex: 1, height: '44px', borderRadius: '10px',
+                              border: '1px solid rgba(255,255,255,0.09)',
+                              background: 'rgba(255,255,255,0.04)',
+                              color: '#8b949e', fontSize: '13px', fontWeight: 700,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+                              cursor: 'pointer', transition: 'all 0.2s',
                             }}
+                            onMouseOver={(e) => { e.currentTarget.style.color = '#e6edf3'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.color = '#8b949e'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'; }}
                           >
-                            <span style={{ fontSize: '16px' }}>🔔</span>
+                            <span style={{ fontSize: '14px' }}>🔔</span>
                             Alerts
                           </button>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        {/* Buy + Sell */}
+                        <div style={{ display: 'flex', gap: '9px' }}>
                           <button
                             onClick={() => handleTradeAction('buy')}
                             style={{
-                              flex: 1,
-                              height: '48px',
-                              borderRadius: '8px',
-                              border: 'none',
-                              background: '#1c2128',
-                              color: '#00d97e',
-                              fontWeight: 800,
-                              fontSize: '16px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '8px',
-                              cursor: 'pointer',
+                              flex: 1, height: '48px', borderRadius: '12px', border: 'none',
+                              background: 'linear-gradient(135deg, #00d97e 0%, #00a86b 100%)',
+                              color: '#000', fontWeight: 900, fontSize: '15px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                              cursor: 'pointer', transition: 'all 0.2s',
+                              boxShadow: '0 6px 20px rgba(0,217,126,0.35)',
+                              letterSpacing: '0.02em',
                             }}
+                            onMouseOver={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(0,217,126,0.5)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,217,126,0.35)'; }}
                           >
-                            <span
-                              style={{
-                                background: '#00d97e',
-                                color: '#000',
-                                borderRadius: '50%',
-                                width: '20px',
-                                height: '20px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '12px',
-                              }}
-                            >
-                              ↑
-                            </span>
+                            <span style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 900 }}>↑</span>
                             Buy
                           </button>
                           <button
                             onClick={() => handleTradeAction('sell')}
                             style={{
-                              flex: 1,
-                              height: '48px',
-                              borderRadius: '8px',
-                              border: 'none',
-                              background: '#1c2128',
-                              color: '#f04d4d',
-                              fontWeight: 800,
-                              fontSize: '16px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '8px',
-                              cursor: 'pointer',
+                              flex: 1, height: '48px', borderRadius: '12px', border: 'none',
+                              background: 'linear-gradient(135deg, #f04d4d 0%, #c0392b 100%)',
+                              color: '#fff', fontWeight: 900, fontSize: '15px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                              cursor: 'pointer', transition: 'all 0.2s',
+                              boxShadow: '0 6px 20px rgba(240,77,77,0.35)',
+                              letterSpacing: '0.02em',
                             }}
+                            onMouseOver={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 28px rgba(240,77,77,0.5)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(240,77,77,0.35)'; }}
                           >
-                            <span
-                              style={{
-                                background: '#f04d4d',
-                                color: '#000',
-                                borderRadius: '50%',
-                                width: '20px',
-                                height: '20px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '12px',
-                              }}
-                            >
-                              ↓
-                            </span>
+                            <span style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 900 }}>↓</span>
                             Sell
                           </button>
                         </div>
@@ -2799,8 +2537,8 @@ export default function PairPage() {
                   {/* Pool & Pair Info */}
                   <div
                     style={{
-                      borderTop: '1px solid #21262d',
-                      padding: '0 16px 16px',
+                      borderTop: '1px solid rgba(255,255,255,0.07)',
+                      padding: '0 14px 16px',
                     }}
                   >
                     {/* Pair Created */}
@@ -2808,13 +2546,14 @@ export default function PairPage() {
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
+                        alignItems: 'center',
                         padding: '10px 0',
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
                         fontSize: '12px',
                       }}
                     >
-                      <span style={{ color: '#8b949e' }}>Pair created</span>
-                      <span style={{ color: '#e6edf3' }}>
+                      <span style={{ color: '#484f58', fontWeight: 600 }}>Pair created</span>
+                      <span style={{ color: '#e6edf3', fontWeight: 600 }}>
                         {pair?.pairCreatedAt ? fmtAge(pair.pairCreatedAt) : '–'}
                       </span>
                     </div>
@@ -2824,25 +2563,22 @@ export default function PairPage() {
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
+                        alignItems: 'center',
                         padding: '10px 0',
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
                         fontSize: '12px',
                       }}
                     >
-                      <span style={{ color: '#8b949e' }}>
+                      <span style={{ color: '#484f58', fontWeight: 600 }}>
                         Pooled {pair?.baseToken?.symbol}
                       </span>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ color: '#e6edf3' }}>
-                          {pair?.liquidity?.base != null
-                            ? fmtNum(pair.liquidity.base, 0)
-                            : '–'}
+                      <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#e6edf3', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', fontSize: '11px' }}>
+                          {pair?.liquidity?.base != null ? fmtNum(pair.liquidity.base, 0) : '–'}
                         </span>
                         {pair?.liquidity?.base != null && pair?.priceUsd && (
-                          <span style={{ color: '#8b949e', marginLeft: '6px' }}>
-                            {fmtUsd(
-                              pair.liquidity.base * parseFloat(pair.priceUsd),
-                            )}
+                          <span style={{ color: '#484f58', fontSize: '10px', fontFamily: 'JetBrains Mono, monospace' }}>
+                            {fmtUsd(pair.liquidity.base * parseFloat(pair.priceUsd))}
                           </span>
                         )}
                       </div>
@@ -2853,33 +2589,24 @@ export default function PairPage() {
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
+                        alignItems: 'center',
                         padding: '10px 0',
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
                         fontSize: '12px',
                       }}
                     >
-                      <span style={{ color: '#8b949e' }}>
+                      <span style={{ color: '#484f58', fontWeight: 600 }}>
                         Pooled {pair?.quoteToken?.symbol}
                       </span>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ color: '#e6edf3' }}>
-                          {pair?.liquidity?.quote != null
-                            ? fmtNum(pair.liquidity.quote, 2)
-                            : '–'}
+                      <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#e6edf3', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', fontSize: '11px' }}>
+                          {pair?.liquidity?.quote != null ? fmtNum(pair.liquidity.quote, 2) : '–'}
                         </span>
-                        {pair?.liquidity?.usd != null &&
-                          pair?.liquidity?.base != null &&
-                          pair?.liquidity?.quote != null && (
-                            <span
-                              style={{ color: '#8b949e', marginLeft: '6px' }}
-                            >
-                              {fmtUsd(
-                                pair.liquidity.usd -
-                                  pair.liquidity.base *
-                                    parseFloat(pair.priceUsd || '0'),
-                              )}
-                            </span>
-                          )}
+                        {pair?.liquidity?.usd != null && pair?.liquidity?.base != null && pair?.liquidity?.quote != null && (
+                          <span style={{ color: '#484f58', fontSize: '10px', fontFamily: 'JetBrains Mono, monospace' }}>
+                            {fmtUsd(pair.liquidity.usd - pair.liquidity.base * parseFloat(pair.priceUsd || '0'))}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -2895,46 +2622,36 @@ export default function PairPage() {
                           fontSize: '12px',
                         }}
                       >
-                        <span style={{ color: '#8b949e' }}>Pair</span>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}
-                        >
+                        <span style={{ color: '#484f58', fontWeight: 600 }}>Pair</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <button
                             onClick={() => copyText(pair.pairAddress)}
                             title="Copy"
                             style={{
-                              background: 'none',
-                              border: 'none',
+                              background: 'rgba(255,255,255,0.06)',
+                              border: '1px solid rgba(255,255,255,0.1)',
                               cursor: 'pointer',
                               color: '#8b949e',
-                              padding: 0,
-                              fontSize: '12px',
+                              padding: '2px 5px',
+                              borderRadius: '4px',
+                              fontSize: '10px',
+                              transition: 'all 0.15s',
                             }}
+                            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#e6edf3'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#8b949e'; }}
                           >
                             ⧉
                           </button>
-                          <span
-                            style={{
-                              color: '#58a6ff',
-                              fontFamily: 'JetBrains Mono',
-                              fontSize: '11px',
-                            }}
-                          >
+                          <span style={{ color: '#4f8ef7', fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', fontWeight: 600 }}>
                             {shorten(pair.pairAddress)}
                           </span>
                           <a
                             href={`https://dexscreener.com/${pair.chainId}/${pair.pairAddress}`}
                             target="_blank"
                             rel="noreferrer"
-                            style={{
-                              color: '#8b949e',
-                              fontSize: '11px',
-                              textDecoration: 'none',
-                            }}
+                            style={{ color: '#484f58', fontSize: '10px', textDecoration: 'none', fontWeight: 600, transition: 'color 0.15s' }}
+                            onMouseOver={(e: any) => { e.currentTarget.style.color = '#4f8ef7'; }}
+                            onMouseOut={(e: any) => { e.currentTarget.style.color = '#484f58'; }}
                           >
                             EXP ↗
                           </a>

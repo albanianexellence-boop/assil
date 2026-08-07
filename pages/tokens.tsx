@@ -4,6 +4,7 @@ import { DexNav } from '../components/DexNav';
 import { DexSidebar } from '../components/DexSidebar';
 import { ContractLayout } from '../components/contract';
 import { useDynamicContext } from '@dynamic-labs/sdk-react-core';
+import { useIsMobile } from '../hooks';
 import {
   TrendingUp,
   TrendingDown,
@@ -100,11 +101,11 @@ const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
-  const height = 32;
-  const width = 84;
+  const height = 36;
+  const width = 88;
   const points = data.map((v, i) => ({
     x: (i / (data.length - 1)) * width,
-    y: height - ((v - min) / range) * (height - 4) - 2,
+    y: height - ((v - min) / range) * (height - 6) - 3,
   }));
   const linePath = points.map((p, i) => (i === 0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`)).join(' ');
   const areaPath = `${linePath} L${width},${height} L0,${height} Z`;
@@ -113,12 +114,28 @@ const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.4" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill={`url(#${gradId})`} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={linePath}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="sparkline-path"
+      />
+      {/* Last point dot */}
+      <circle
+        cx={points[points.length - 1].x}
+        cy={points[points.length - 1].y}
+        r="2.5"
+        fill={color}
+        style={{ filter: `drop-shadow(0 0 3px ${color})` }}
+      />
     </svg>
   );
 };
@@ -126,7 +143,7 @@ const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
 // ---- Pct badge ----
 const PctBadge = ({ v }: { v: number }) => {
   if (v == null || isNaN(v))
-    return <span style={{ color: '#484f58', fontSize: '11px' }}>–</span>;
+    return <span style={{ color: '#484f58', fontSize: '11px', fontFamily: 'JetBrains Mono, monospace' }}>–</span>;
   const pos = v >= 0;
   return (
     <span
@@ -134,16 +151,20 @@ const PctBadge = ({ v }: { v: number }) => {
         display: 'inline-flex',
         alignItems: 'center',
         gap: '3px',
-        padding: '3px 7px',
-        borderRadius: '6px',
+        padding: '4px 8px',
+        borderRadius: '7px',
         fontSize: '11px',
         fontWeight: 700,
-        background: pos ? 'rgba(0,217,126,0.12)' : 'rgba(240,77,77,0.12)',
+        fontFamily: 'JetBrains Mono, monospace',
+        background: pos ? 'rgba(0,217,126,0.1)' : 'rgba(240,77,77,0.1)',
         color: pos ? '#00d97e' : '#f04d4d',
-        letterSpacing: '0.02em',
+        letterSpacing: '0.01em',
+        border: `1px solid ${pos ? 'rgba(0,217,126,0.18)' : 'rgba(240,77,77,0.18)'}`,
+        boxShadow: pos ? '0 0 8px rgba(0,217,126,0.08)' : '0 0 8px rgba(240,77,77,0.08)',
+        whiteSpace: 'nowrap',
       }}
     >
-      {pos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+      {pos ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
       {pos ? '+' : ''}{v.toFixed(2)}%
     </span>
   );
@@ -155,15 +176,15 @@ const ChainBadge = ({ chain }: { chain: string }) => {
   return (
     <span
       style={{
-        background: `${color}22`,
+        background: `${color}18`,
         color,
-        border: `1px solid ${color}55`,
+        border: `1px solid ${color}45`,
         fontSize: '9px',
         fontWeight: 800,
-        padding: '2px 6px',
+        padding: '2px 7px',
         borderRadius: '5px',
         textTransform: 'uppercase',
-        letterSpacing: '0.5px',
+        letterSpacing: '0.6px',
         flexShrink: 0,
       }}
     >
@@ -187,6 +208,7 @@ const DropdownMenu = ({
   if (!isOpen) return null;
   return (
     <div
+      className="modal-enter"
       style={{
         position: 'absolute',
         top: 'calc(100% + 8px)',
@@ -195,11 +217,10 @@ const DropdownMenu = ({
         zIndex: 1000,
         borderRadius: '14px',
         padding: '6px',
-        background: 'rgba(16, 20, 26, 0.95)',
-        backdropFilter: 'blur(20px)',
+        background: 'rgba(13,17,22,0.98)',
+        backdropFilter: 'blur(24px)',
         border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
-        animation: 'fadeIn 0.15s ease-out',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)',
       }}
     >
       {items.map((item, idx) => (
@@ -255,82 +276,149 @@ const StatsBar = ({ pairs }: { pairs: Pair[] }) => {
     0,
   );
   const stats = [
-    { label: '24H VOLUME', value: fmtUsd(totalVol), icon: <BarChart3 size={15} />, color: '#4f8ef7' },
-    { label: '24H TXNS', value: fmtNum(totalTxns), icon: <Activity size={15} />, color: '#00d97e' },
-    { label: 'PAIRS LIVE', value: fmtNum(pairs.length), icon: <Droplets size={15} />, color: '#a371f7' },
+    {
+      label: '24H Volume',
+      value: fmtUsd(totalVol),
+      subLabel: 'Total traded',
+      icon: <BarChart3 size={20} />,
+      color: '#4f8ef7',
+    },
+    {
+      label: '24H Transactions',
+      value: fmtNum(totalTxns),
+      subLabel: 'Buys & sells',
+      icon: <Activity size={20} />,
+      color: '#00d97e',
+    },
+    {
+      label: 'Pairs Live',
+      value: fmtNum(pairs.length),
+      subLabel: 'Active markets',
+      icon: <Droplets size={20} />,
+      color: '#a371f7',
+    },
   ];
+
   return (
     <div
+      className="stats-grid"
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '0 16px',
-        margin: '12px 16px',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr 1fr auto',
+        gap: '8px',
+        padding: '0 10px',
+        margin: '8px 10px',
       }}
     >
       {stats.map((s) => (
         <div
           key={s.label}
           style={{
-            flex: 1,
+            padding: '16px 20px',
+            borderRadius: '16px',
+            background: 'rgba(255,255,255,0.025)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderTop: `2px solid ${s.color}70`,
+            backdropFilter: 'blur(16px)',
             display: 'flex',
             alignItems: 'center',
-            gap: '14px',
-            padding: '14px 20px',
-            borderRadius: '16px',
-            background: 'rgba(255,255,255,0.03)',
-            border: `1px solid ${s.color}28`,
-            boxShadow: `0 0 0 1px ${s.color}10, inset 0 1px 0 ${s.color}10`,
-            backdropFilter: 'blur(12px)',
+            gap: '16px',
+            boxShadow: `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04)`,
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            cursor: 'default',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px ${s.color}20`;
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04)`;
           }}
         >
           <div
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: '11px',
-              background: `${s.color}18`,
-              border: `1px solid ${s.color}30`,
+              width: 46,
+              height: 46,
+              borderRadius: '14px',
+              background: `${s.color}14`,
+              border: `1px solid ${s.color}28`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: s.color,
               flexShrink: 0,
+              boxShadow: `0 0 20px ${s.color}20`,
             }}
           >
             {s.icon}
           </div>
-          <div>
-            <div style={{ fontSize: '10px', color: '#484f58', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: '10px',
+                color: '#484f58',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.09em',
+                marginBottom: '5px',
+              }}
+            >
               {s.label}
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '-0.02em' }}>
+            <div
+              style={{
+                fontSize: '22px',
+                fontWeight: 900,
+                color: '#ffffff',
+                fontFamily: 'JetBrains Mono, monospace',
+                letterSpacing: '-0.04em',
+                lineHeight: 1,
+              }}
+            >
               {s.value}
+            </div>
+            <div style={{ fontSize: '10px', color: '#484f58', marginTop: '4px', fontWeight: 500 }}>
+              {s.subLabel}
             </div>
           </div>
         </div>
       ))}
+
+      {/* Live badge */}
       <div
+        className="stats-grid-live"
         style={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: '8px',
-          padding: '14px 18px',
+          padding: '16px 22px',
           borderRadius: '16px',
           background: 'rgba(0,217,126,0.05)',
-          border: '1px solid rgba(0,217,126,0.2)',
-          backdropFilter: 'blur(12px)',
-          fontSize: '11px',
-          color: '#00d97e',
-          fontWeight: 700,
-          letterSpacing: '0.06em',
+          border: '1px solid rgba(0,217,126,0.15)',
+          borderTop: '2px solid rgba(0,217,126,0.5)',
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.25), 0 0 20px rgba(0,217,126,0.05)',
           flexShrink: 0,
-          whiteSpace: 'nowrap',
+          minWidth: 90,
         }}
       >
-        <span className="live-dot" />
-        LIVE · 1S
+        <div
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            background: '#00d97e',
+            boxShadow: '0 0 0 3px rgba(0,217,126,0.2), 0 0 16px rgba(0,217,126,0.5)',
+            animation: 'pulse-dot 1.8s infinite',
+          }}
+        />
+        <div style={{ fontSize: '12px', color: '#00d97e', fontWeight: 900, letterSpacing: '0.1em' }}>
+          LIVE
+        </div>
+        <div style={{ fontSize: '10px', color: '#484f58', fontWeight: 600 }}>1s refresh</div>
       </div>
     </div>
   );
@@ -342,60 +430,134 @@ const TokenTicker = ({ pairs }: { pairs: Pair[] }) => {
   return (
     <div
       style={{
+        position: 'relative',
         overflow: 'hidden',
-        height: '38px',
+        height: '40px',
         display: 'flex',
         alignItems: 'center',
         margin: '0 16px',
         borderRadius: '12px',
-        background: 'rgba(255,255,255,0.025)',
-        border: '1px solid rgba(255,255,255,0.07)',
-        backdropFilter: 'blur(10px)',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
     >
+      {/* Left label */}
       <div
-        className="animate-marquee"
-        style={{ display: 'flex', gap: '0', whiteSpace: 'nowrap', width: 'max-content' }}
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 5,
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 14px',
+          background: 'linear-gradient(90deg, rgba(11,14,17,1) 70%, transparent 100%)',
+          gap: '7px',
+          flexShrink: 0,
+        }}
       >
-        {doubled.map((p, i) => {
-          const chg = p.priceChange?.h24 ?? 0;
-          const pos = chg >= 0;
-          const color = CHAIN_COLOR[p.chainId] || '#484f58';
-          return (
-            <span
-              key={i}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '0 22px',
-                borderRight: '1px solid rgba(255,255,255,0.06)',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}
-            >
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: '#00d97e',
+            boxShadow: '0 0 8px #00d97e',
+            display: 'inline-block',
+            animation: 'pulse-dot 1.8s infinite',
+          }}
+        />
+        <span
+          style={{
+            fontSize: '9px',
+            fontWeight: 800,
+            color: '#00d97e',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Live
+        </span>
+      </div>
+
+      {/* Right fade */}
+      <div
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: '60px',
+          background: 'linear-gradient(90deg, transparent, rgba(11,14,17,0.95))',
+          zIndex: 5,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Ticker content */}
+      <div style={{ paddingLeft: '80px', overflow: 'hidden', width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
+        <div
+          className="animate-marquee"
+          style={{ display: 'flex', gap: '0', whiteSpace: 'nowrap', width: 'max-content', alignItems: 'center' }}
+        >
+          {doubled.map((p, i) => {
+            const chg = p.priceChange?.h24 ?? 0;
+            const pos = chg >= 0;
+            const color = CHAIN_COLOR[p.chainId] || '#484f58';
+            return (
               <span
+                key={i}
                 style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: color,
-                  boxShadow: `0 0 8px ${color}`,
-                  flexShrink: 0,
-                  display: 'inline-block',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '0 20px',
+                  borderRight: '1px solid rgba(255,255,255,0.05)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  height: '40px',
                 }}
-              />
-              <span style={{ color: '#e6edf3' }}>{p.baseToken?.symbol}</span>
-              <span style={{ color: pos ? '#00d97e' : '#f04d4d', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                {pos ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                {pos ? '+' : ''}{chg.toFixed(1)}%
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: color,
+                    boxShadow: `0 0 6px ${color}`,
+                    flexShrink: 0,
+                    display: 'inline-block',
+                  }}
+                />
+                <span style={{ color: '#c9d1d9', fontWeight: 700 }}>{p.baseToken?.symbol}</span>
+                <span
+                  style={{
+                    color: pos ? '#00d97e' : '#f04d4d',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    fontSize: '11px',
+                    fontFamily: 'JetBrains Mono, monospace',
+                  }}
+                >
+                  {pos ? '▲' : '▼'}{pos ? '+' : ''}{chg.toFixed(1)}%
+                </span>
+                <span
+                  style={{
+                    color: '#484f58',
+                    fontSize: '11px',
+                    fontFamily: 'JetBrains Mono, monospace',
+                  }}
+                >
+                  {fmtUsd(p.priceUsd)}
+                </span>
               </span>
-              <span style={{ color: '#484f58', fontSize: '11px', fontFamily: 'JetBrains Mono' }}>
-                {fmtUsd(p.priceUsd)}
-              </span>
-            </span>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -434,6 +596,8 @@ export default function TokensPage() {
 
   const [activeDropdown, setActiveDropdown] = useState<'time' | 'profile' | 'boosted' | null>(null);
   const searchRef = useRef<NodeJS.Timeout | null>(null);
+  const isMobile = useIsMobile();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const fetchPairs = useCallback(
     async (isBackground = false) => {
@@ -572,7 +736,6 @@ export default function TokensPage() {
     return list;
   }, [pairs, search, deepFilters, timeKey, filter, timeFilter, sortKey, sortOrder]);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const handler = () => setActiveDropdown(null);
     document.addEventListener('click', handler);
@@ -580,13 +743,13 @@ export default function TokensPage() {
   }, []);
 
   const NAV_TABS = [
-    { id: 'top', label: 'Top', icon: <BarChart3 size={14} /> },
-    { id: 'gainers', label: 'Gainers', icon: <TrendingUp size={14} /> },
-    { id: 'new', label: 'New', icon: <Droplets size={14} /> },
+    { id: 'top', label: 'Top', icon: <BarChart3 size={13} /> },
+    { id: 'gainers', label: 'Gainers', icon: <TrendingUp size={13} /> },
+    { id: 'new', label: 'New', icon: <Droplets size={13} /> },
     {
       id: 'profile',
       label: 'Profiles',
-      icon: <Users size={14} />,
+      icon: <Users size={13} />,
       hasDropdown: true,
       dropdownItems: [
         { label: 'All Profiles', onClick: () => setFilter('profile'), active: filter === 'profile' },
@@ -597,7 +760,7 @@ export default function TokensPage() {
     {
       id: 'boosted',
       label: 'Boosted',
-      icon: <Zap size={14} />,
+      icon: <Zap size={13} />,
       hasDropdown: true,
       dropdownItems: [
         { label: 'Active Boosted', onClick: () => setFilter('boosted'), active: filter === 'boosted' },
@@ -607,7 +770,7 @@ export default function TokensPage() {
     },
   ];
 
-  const TABLE_COLS = '48px 1fr 108px 96px 88px 72px 76px 76px 76px 76px 96px 96px';
+  const TABLE_COLS = '52px 1fr 116px 100px 88px 72px 76px 76px 76px 80px 96px 96px';
 
   const SortHeader = ({
     label,
@@ -631,118 +794,168 @@ export default function TokensPage() {
           alignItems: 'center',
           gap: '4px',
           cursor: 'pointer',
-          color: active ? '#4f8ef7' : colKey === timeKey ? '#e6edf3' : '#484f58',
+          color: active ? '#4f8ef7' : colKey === timeKey ? '#c9d1d9' : '#484f58',
           fontSize: '10px',
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '0.08em',
           userSelect: 'none',
           transition: 'color 0.2s',
+          padding: '2px 4px',
+          borderRadius: '4px',
+          background: active ? 'rgba(79,142,247,0.08)' : 'transparent',
         }}
+        onMouseOver={(e) => { if (!active) e.currentTarget.style.color = '#8b949e'; }}
+        onMouseOut={(e) => { if (!active) e.currentTarget.style.color = colKey === timeKey ? '#c9d1d9' : '#484f58'; }}
       >
         {icon}
         {label}
-        {active && <span style={{ fontSize: '9px', marginLeft: '1px' }}>{sortOrder === 'desc' ? '▼' : '▲'}</span>}
+        {active && (
+          <span style={{ fontSize: '9px', marginLeft: '1px', color: '#4f8ef7' }}>
+            {sortOrder === 'desc' ? '▼' : '▲'}
+          </span>
+        )}
       </span>
     );
   };
 
   return (
     <div
-      className="premium-bg"
-      style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: '#e6edf3', position: 'relative', overflow: 'hidden' }}
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        color: '#e6edf3',
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#0b0e11',
+      }}
       onClick={() => setActiveDropdown(null)}
     >
-      {/* Background glow orbs */}
-      <div
-        style={{
-          position: 'fixed',
-          top: '-20%',
-          left: '-10%',
-          width: '600px',
-          height: '600px',
-          background: 'radial-gradient(circle, rgba(79,142,247,0.06) 0%, transparent 70%)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '-10%',
-          right: '-5%',
-          width: '500px',
-          height: '500px',
-          background: 'radial-gradient(circle, rgba(163,113,247,0.05) 0%, transparent 70%)',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
+      {/* Atmospheric background */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        {/* Grid lines */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+            maskImage: 'radial-gradient(ellipse 80% 60% at 50% 50%, black 0%, transparent 100%)',
+          }}
+        />
+        {/* Blue orb top-left */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-15%',
+            left: '-8%',
+            width: '700px',
+            height: '700px',
+            background: 'radial-gradient(circle, rgba(79,142,247,0.08) 0%, transparent 65%)',
+          }}
+        />
+        {/* Purple orb bottom-right */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '-15%',
+            right: '-8%',
+            width: '600px',
+            height: '600px',
+            background: 'radial-gradient(circle, rgba(163,113,247,0.07) 0%, transparent 65%)',
+          }}
+        />
+        {/* Green orb mid-right */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '40%',
+            right: '20%',
+            width: '400px',
+            height: '400px',
+            background: 'radial-gradient(circle, rgba(0,217,126,0.04) 0%, transparent 65%)',
+          }}
+        />
+      </div>
 
-      {/* Functional contract components — hidden */}
+      {/* Hidden logic components */}
       <ContractLayout />
 
-      <DexNav />
+      <DexNav onMobileSidebarToggle={() => setMobileSidebarOpen((p) => !p)} />
 
       <div style={{ display: 'flex', flex: 1, paddingTop: '60px', position: 'relative', zIndex: 1 }}>
         {/* Sidebar */}
-        <DexSidebar selectedChain={selectedChain} onChainSelect={setSelectedChain} />
+        <DexSidebar
+          selectedChain={selectedChain}
+          onChainSelect={setSelectedChain}
+          mobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
 
         {/* Main content */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: isMobile ? 'visible' : 'hidden', minWidth: 0 }}>
 
-          {/* Ticker */}
-          <div style={{ margin: '12px 16px 0 16px' }}>
+          {/* Live ticker */}
+          <div style={{ margin: isMobile ? '8px 10px 0' : '12px 16px 0' }}>
             <TokenTicker pairs={pairs} />
           </div>
 
-          {/* Stats bar */}
-          <StatsBar pairs={pairs} />
+          {/* Stats */}
+          <div className="stats-grid-wrapper">
+            <StatsBar pairs={pairs} />
+          </div>
 
-          {/* Filter bar */}
+          {/* ===== FILTER BAR ===== */}
           <div
+            className="filter-bar"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '10px 14px',
-              margin: '0 16px 14px 16px',
-              borderRadius: '16px',
-              background: 'rgba(255,255,255,0.03)',
+              gap: '6px',
+              padding: '8px 10px',
+              margin: '0 10px 10px',
+              borderRadius: '14px',
+              background: 'rgba(255,255,255,0.025)',
               border: '1px solid rgba(255,255,255,0.07)',
-              backdropFilter: 'blur(16px)',
+              backdropFilter: 'blur(20px)',
               flexWrap: 'nowrap',
               overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch' as any,
               scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
               whiteSpace: 'nowrap',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
-            }}
+              boxShadow: '0 4px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04)',
+            } as React.CSSProperties}
           >
             {/* Time dropdown */}
-            <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ position: 'relative', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setActiveDropdown(activeDropdown === 'time' ? null : 'time')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '7px',
-                  padding: '8px 14px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(79,142,247,0.3)',
-                  background: 'rgba(79,142,247,0.12)',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  borderRadius: '9px',
+                  border: '1px solid rgba(79,142,247,0.35)',
+                  background: 'rgba(79,142,247,0.1)',
                   color: '#4f8ef7',
                   fontWeight: 700,
                   fontSize: '12px',
                   cursor: 'pointer',
                   flexShrink: 0,
                   transition: 'all 0.2s',
-                  boxShadow: '0 0 20px rgba(79,142,247,0.08)',
+                  boxShadow: '0 0 16px rgba(79,142,247,0.1)',
                 }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(79,142,247,0.18)'; e.currentTarget.style.boxShadow = '0 0 24px rgba(79,142,247,0.2)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(79,142,247,0.1)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(79,142,247,0.1)'; }}
               >
-                <Clock size={14} />
+                <Clock size={13} />
                 {timeFilter}
                 <ChevronDown
-                  size={12}
+                  size={11}
                   style={{ transform: activeDropdown === 'time' ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
                 />
               </button>
@@ -759,15 +972,14 @@ export default function TokensPage() {
               />
             </div>
 
-            {/* Divider */}
-            <div style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.08)', flexShrink: 0 }} />
+            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
 
-            {/* Trending + timeframe pill group */}
+            {/* Trending + timeframes */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                background: 'rgba(0,0,0,0.25)',
+                background: 'rgba(0,0,0,0.3)',
                 borderRadius: '10px',
                 padding: '3px',
                 flexShrink: 0,
@@ -780,21 +992,25 @@ export default function TokensPage() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
+                  gap: '5px',
+                  padding: '5px 11px',
                   border: 'none',
                   borderRadius: '7px',
-                  background: filter === 'trending' ? 'rgba(255,165,0,0.15)' : 'transparent',
+                  background: filter === 'trending'
+                    ? 'rgba(255,171,64,0.15)'
+                    : 'transparent',
                   color: filter === 'trending' ? '#ffab40' : '#8b949e',
                   fontWeight: 700,
                   fontSize: '12px',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
+                  boxShadow: filter === 'trending' ? '0 0 16px rgba(255,171,64,0.15)' : 'none',
                 }}
               >
-                <Flame size={13} color={filter === 'trending' ? '#ffab40' : 'currentColor'} />
+                <Flame size={12} color={filter === 'trending' ? '#ffab40' : 'currentColor'} />
                 Trending
               </button>
+
               <div
                 style={{
                   display: 'flex',
@@ -802,7 +1018,7 @@ export default function TokensPage() {
                   background: 'rgba(0,0,0,0.2)',
                   padding: '2px',
                   borderRadius: '6px',
-                  marginLeft: '4px',
+                  marginLeft: '2px',
                 }}
               >
                 {['5M', '1H', '6H', '24H'].map((t) => (
@@ -810,15 +1026,16 @@ export default function TokensPage() {
                     key={t}
                     onClick={() => setTimeFilter(t)}
                     style={{
-                      padding: '4px 10px',
+                      padding: '4px 9px',
                       border: 'none',
                       borderRadius: '4px',
-                      background: timeFilter === t ? 'rgba(255,255,255,0.12)' : 'transparent',
+                      background: timeFilter === t ? 'rgba(255,255,255,0.14)' : 'transparent',
                       color: timeFilter === t ? '#ffffff' : '#484f58',
                       fontWeight: 700,
                       fontSize: '11px',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
+                      boxShadow: timeFilter === t ? 'inset 0 1px 0 rgba(255,255,255,0.1)' : 'none',
                     }}
                   >
                     {t}
@@ -828,7 +1045,7 @@ export default function TokensPage() {
             </div>
 
             {/* Nav tabs */}
-            <div style={{ display: 'flex', gap: '2px' }}>
+            <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
               {NAV_TABS.map((t) => {
                 const isActive = filter === t.id;
                 const isDropdownOpen = activeDropdown === (t.id as any);
@@ -849,28 +1066,35 @@ export default function TokensPage() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '7px',
-                        padding: '8px 13px',
+                        gap: '6px',
+                        padding: '7px 12px',
                         borderRadius: '9px',
-                        border: `1px solid ${isActive || isDropdownOpen ? 'rgba(255,255,255,0.12)' : 'transparent'}`,
-                        background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
-                        color: isActive || isDropdownOpen ? '#ffffff' : '#8b949e',
-                        fontWeight: 600,
+                        border: `1px solid ${isActive ? 'rgba(0,217,126,0.25)' : isDropdownOpen ? 'rgba(255,255,255,0.12)' : 'transparent'}`,
+                        background: isActive
+                          ? 'rgba(0,217,126,0.1)'
+                          : isDropdownOpen
+                          ? 'rgba(255,255,255,0.06)'
+                          : 'transparent',
+                        color: isActive ? '#00d97e' : isDropdownOpen ? '#ffffff' : '#8b949e',
+                        fontWeight: 700,
                         fontSize: '12px',
                         cursor: 'pointer',
                         flexShrink: 0,
                         transition: 'all 0.2s',
+                        boxShadow: isActive ? '0 0 16px rgba(0,217,126,0.12)' : 'none',
                       }}
                       onMouseEnter={(e) => {
-                        if (!isActive) {
+                        if (!isActive && !isDropdownOpen) {
                           e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
                           e.currentTarget.style.color = '#c9d1d9';
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (!isActive) {
+                        if (!isActive && !isDropdownOpen) {
                           e.currentTarget.style.background = 'transparent';
                           e.currentTarget.style.color = '#8b949e';
+                          e.currentTarget.style.borderColor = 'transparent';
                         }
                       }}
                     >
@@ -878,11 +1102,11 @@ export default function TokensPage() {
                       {t.label}
                       {t.hasDropdown && (
                         <ChevronDown
-                          size={11}
+                          size={10}
                           style={{
                             transform: isDropdownOpen ? 'rotate(180deg)' : 'none',
                             transition: 'transform 0.2s',
-                            opacity: 0.5,
+                            opacity: 0.6,
                           }}
                         />
                       )}
@@ -899,17 +1123,17 @@ export default function TokensPage() {
               })}
             </div>
 
-            {/* Right side */}
+            {/* Right: Filters + Search */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', flexShrink: 0 }}>
               <button
                 onClick={() => setShowFilters(true)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '7px',
-                  padding: '8px 13px',
+                  gap: '6px',
+                  padding: '7px 12px',
                   borderRadius: '9px',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.09)',
                   background: 'rgba(255,255,255,0.04)',
                   color: '#8b949e',
                   fontWeight: 600,
@@ -917,72 +1141,202 @@ export default function TokensPage() {
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#8b949e'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#e6edf3';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#8b949e';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)';
+                }}
               >
-                <SlidersHorizontal size={14} />
+                <SlidersHorizontal size={13} />
                 Filters
               </button>
 
               <div style={{ position: 'relative' }}>
                 <Search
                   size={13}
-                  style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: '#484f58', pointerEvents: 'none' }}
+                  style={{
+                    position: 'absolute',
+                    left: '11px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#484f58',
+                    pointerEvents: 'none',
+                  }}
                 />
                 <input
                   value={search}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Search pairs…"
                   style={{
-                    padding: '8px 12px 8px 32px',
+                    padding: '7px 12px 7px 32px',
                     fontSize: '12px',
-                    width: '190px',
+                    width: '200px',
                     height: '34px',
-                    background: 'rgba(0,0,0,0.3)',
+                    background: 'rgba(0,0,0,0.35)',
                     border: '1px solid rgba(255,255,255,0.08)',
                     borderRadius: '9px',
                     color: '#e6edf3',
                     outline: 'none',
                     fontFamily: 'Inter, sans-serif',
-                    transition: 'border-color 0.2s',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
                   }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(79,142,247,0.4)')}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(79,142,247,0.5)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(79,142,247,0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </div>
           </div>
 
-          {/* Table */}
+          {/* ===== TOKEN TABLE ===== */}
           <div
             style={{
-              flex: 1,
-              overflowY: 'auto',
-              margin: '0 16px 16px 16px',
-              borderRadius: '16px',
+              flex: isMobile ? 'none' : 1,
+              overflowY: isMobile ? 'visible' : 'auto',
+              margin: '0 10px 10px',
+              borderRadius: '14px',
               border: '1px solid rgba(255,255,255,0.07)',
-              background: 'rgba(255,255,255,0.02)',
-              backdropFilter: 'blur(12px)',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.3)',
+              background: 'rgba(255,255,255,0.015)',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 12px 48px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04)',
+              position: 'relative',
             }}
+            className="custom-scrollbar"
           >
+          {/* Mobile: mini header */}
+          {isMobile && !loading && filteredPairs.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '22px 36px 1fr 80px 88px', gap: '10px', padding: '8px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(9,12,16,0.95)', position: 'sticky', top: 0, zIndex: 5, backdropFilter: 'blur(12px)' }}>
+              <span style={{ fontSize: '9px', color: '#484f58', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>#</span>
+              <span />
+              <span style={{ fontSize: '9px', color: '#484f58', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Token</span>
+              <span style={{ fontSize: '9px', color: '#484f58', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'right' }}>Price</span>
+              <span style={{ fontSize: '9px', color: '#484f58', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'right' }}>Chart</span>
+            </div>
+          )}
+
+          {/* Mobile card rows */}
+          {isMobile && (
+            loading ? (
+              <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid rgba(0,217,126,0.15)', borderTopColor: '#00d97e', animation: 'spin 0.9s linear infinite', margin: '0 auto 12px' }} />
+                <div style={{ color: '#484f58', fontSize: '13px' }}>Loading…</div>
+                <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+              </div>
+            ) : filteredPairs.length === 0 ? (
+              <div style={{ padding: '60px 16px', textAlign: 'center' }}>
+                <Star size={36} style={{ color: '#484f58', opacity: 0.3, display: 'block', margin: '0 auto 12px' }} />
+                <div style={{ color: '#484f58', fontSize: '13px' }}>No tokens match your filters</div>
+              </div>
+            ) : filteredPairs.map((p, i) => {
+              const pos = (p.priceChange?.[timeKey as keyof typeof p.priceChange] || 0) >= 0;
+              const chainColor = CHAIN_COLOR[p.chainId] || '#484f58';
+              const history = getMockHistory(p);
+              return (
+                <div
+                  key={p.pairAddress + i}
+                  onClick={() => router.push(`/tokens/${p.chainId}/${p.pairAddress}`)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '11px 14px',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    cursor: 'pointer',
+                    background: i % 2 === 0 ? 'rgba(255,255,255,0.007)' : 'transparent',
+                    transition: 'background 0.15s',
+                  }}
+                  onTouchStart={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                  onTouchEnd={(e) => { e.currentTarget.style.background = i % 2 === 0 ? 'rgba(255,255,255,0.007)' : 'transparent'; }}
+                >
+                  <span style={{ width: 22, textAlign: 'center', fontSize: '11px', color: '#484f58', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>{i + 1}</span>
+                  <div style={{ position: 'relative', width: 36, height: 36, flexShrink: 0 }}>
+                    {p.info?.imageUrl ? (
+                      <img src={p.info.imageUrl} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${chainColor}40` }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: `linear-gradient(135deg,${chainColor}30,#0b0e11)`, border: `2px solid ${chainColor}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '14px', color: chainColor, textTransform: 'uppercase' }}>
+                        {(p.baseToken?.symbol || '?').charAt(0)}
+                      </div>
+                    )}
+                    <div style={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '4px', background: chainColor, border: '2px solid #0b0e11', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 900, color: '#fff', textTransform: 'uppercase' }}>
+                      {p.chainId?.[0]}
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'nowrap' }}>
+                      <span style={{ fontWeight: 800, fontSize: '13px', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px' }}>{p.baseToken?.symbol}</span>
+                      {p.boosts?.active ? <span style={{ fontSize: '9px', fontWeight: 900, color: '#000', background: 'linear-gradient(135deg,#f0b94d,#d29922)', padding: '1px 4px', borderRadius: '4px', flexShrink: 0 }}>⚡{p.boosts.active}</span> : null}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#484f58', display: 'flex', gap: '3px', alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.dexId}</span>
+                      <span>·</span>
+                      <span style={{ color: chainColor, fontWeight: 700, fontSize: '9px', textTransform: 'uppercase', flexShrink: 0 }}>{CHAIN_LABEL[p.chainId] || p.chainId?.slice(0,3)}</span>
+                      <span>·</span>
+                      <span style={{ flexShrink: 0 }}>{fmtAge(p.pairCreatedAt)}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0, minWidth: '68px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800, fontFamily: 'JetBrains Mono, monospace', color: pos ? '#00d97e' : '#f04d4d', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>{fmtUsd(p.priceUsd)}</div>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 5px', borderRadius: '5px', fontSize: '10px', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', background: pos ? 'rgba(0,217,126,0.1)' : 'rgba(240,77,77,0.1)', color: pos ? '#00d97e' : '#f04d4d', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                      {pos ? '▲' : '▼'}{pos ? '+' : ''}{((p.priceChange as any)?.[timeKey] || 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                    <Sparkline data={history} color={pos ? '#00d97e' : '#f04d4d'} />
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {/* Desktop full table */}
+          {!isMobile && (<div className="scroll-x"><div style={{ minWidth: '800px' }}>
             {/* Table header */}
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: TABLE_COLS,
-                padding: '14px 20px',
+                padding: '13px 20px',
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
                 position: 'sticky',
                 top: 0,
-                background: 'rgba(11,14,17,0.92)',
-                backdropFilter: 'blur(16px)',
+                background: 'rgba(9,12,16,0.95)',
+                backdropFilter: 'blur(20px)',
                 zIndex: 10,
                 alignItems: 'center',
+                boxShadow: '0 1px 0 rgba(255,255,255,0.04)',
               }}
             >
-              <span style={{ fontSize: '10px', color: '#484f58', fontWeight: 700, paddingLeft: '6px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>#</span>
-              <span style={{ fontSize: '10px', color: '#484f58', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>TOKEN</span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  color: '#484f58',
+                  fontWeight: 700,
+                  paddingLeft: '6px',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                #
+              </span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  color: '#484f58',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Token
+              </span>
               <SortHeader label="Price" colKey="price" icon={<DollarSign size={9} />} />
               <SortHeader label="Chart" colKey="chart_m5" icon={<Activity size={9} />} />
               <SortHeader label="Txns" colKey="txns" icon={<Activity size={9} />} />
@@ -995,28 +1349,70 @@ export default function TokensPage() {
               <SortHeader label="FDV" colKey="mcap" icon={<Users size={9} />} />
             </div>
 
-            {/* Rows */}
+            {/* ---- LOADING ---- */}
             {loading ? (
-              <div style={{ padding: '80px 20px', textAlign: 'center', color: '#484f58' }}>
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: '50%',
-                    border: '3px solid rgba(79,142,247,0.15)',
-                    borderTopColor: '#4f8ef7',
-                    animation: 'spin 0.9s linear infinite',
-                    margin: '0 auto 16px',
-                  }}
-                />
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#8b949e' }}>Loading market data…</div>
+              <div style={{ padding: '0' }}>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: TABLE_COLS,
+                      padding: '16px 20px',
+                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                      alignItems: 'center',
+                      gap: '0',
+                      opacity: 1 - i * 0.1,
+                    }}
+                  >
+                    <div className="skeleton" style={{ width: '22px', height: '14px', marginLeft: '6px' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div className="skeleton" style={{ width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0 }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div className="skeleton" style={{ width: '80px', height: '12px' }} />
+                        <div className="skeleton" style={{ width: '50px', height: '10px' }} />
+                      </div>
+                    </div>
+                    <div className="skeleton" style={{ width: '70px', height: '13px', marginLeft: 'auto' }} />
+                    <div className="skeleton" style={{ width: '80px', height: '32px', marginLeft: 'auto', borderRadius: '4px' }} />
+                    <div className="skeleton" style={{ width: '44px', height: '13px', marginLeft: 'auto' }} />
+                    <div className="skeleton" style={{ width: '44px', height: '13px', marginLeft: 'auto' }} />
+                    <div className="skeleton" style={{ width: '52px', height: '22px', marginLeft: 'auto', borderRadius: '7px' }} />
+                    <div className="skeleton" style={{ width: '52px', height: '22px', marginLeft: 'auto', borderRadius: '7px' }} />
+                    <div className="skeleton" style={{ width: '52px', height: '22px', marginLeft: 'auto', borderRadius: '7px' }} />
+                    <div className="skeleton" style={{ width: '52px', height: '22px', marginLeft: 'auto', borderRadius: '7px' }} />
+                    <div className="skeleton" style={{ width: '58px', height: '13px', marginLeft: 'auto' }} />
+                    <div className="skeleton" style={{ width: '58px', height: '13px', marginLeft: 'auto' }} />
+                  </div>
+                ))}
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
               </div>
+
             ) : filteredPairs.length === 0 ? (
-              <div style={{ padding: '80px 20px', textAlign: 'center', color: '#484f58' }}>
-                <Star size={32} style={{ margin: '0 auto 16px', display: 'block', opacity: 0.3 }} />
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#8b949e' }}>No tokens match your filters</div>
+              <div
+                style={{
+                  padding: '100px 20px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '16px',
+                }}
+              >
+                <div className="float-icon">
+                  <Star
+                    size={44}
+                    style={{ color: '#484f58', opacity: 0.4, filter: 'drop-shadow(0 0 12px rgba(163,113,247,0.3))' }}
+                  />
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 700, color: '#8b949e' }}>
+                  No tokens match your filters
+                </div>
+                <div style={{ fontSize: '13px', color: '#484f58' }}>
+                  Try adjusting your search or filter criteria
+                </div>
               </div>
+
             ) : (
               filteredPairs.map((p, i) => {
                 const history = getMockHistory(p);
@@ -1024,6 +1420,7 @@ export default function TokensPage() {
                 const sparkColor = pos ? '#00d97e' : '#f04d4d';
                 const chainColor = CHAIN_COLOR[p.chainId] || '#484f58';
                 const isHovered = hoveredRow === p.pairAddress;
+                const isTop3 = i < 3;
 
                 return (
                   <div
@@ -1034,16 +1431,20 @@ export default function TokensPage() {
                     style={{
                       display: 'grid',
                       gridTemplateColumns: TABLE_COLS,
-                      padding: '14px 20px',
-                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                      padding: '13px 20px',
+                      borderBottom: '1px solid rgba(255,255,255,0.035)',
                       cursor: 'pointer',
                       alignItems: 'center',
-                      background: isHovered ? 'rgba(255,255,255,0.03)' : i % 2 === 0 ? 'rgba(255,255,255,0.008)' : 'transparent',
-                      transition: 'background 0.15s',
+                      background: isHovered
+                        ? `linear-gradient(90deg, ${chainColor}08 0%, rgba(255,255,255,0.025) 40%)`
+                        : i % 2 === 0
+                        ? 'rgba(255,255,255,0.007)'
+                        : 'transparent',
+                      transition: 'background 0.18s ease',
                       position: 'relative',
                     }}
                   >
-                    {/* Left accent on hover */}
+                    {/* Hover accent bar */}
                     {isHovered && (
                       <div
                         style={{
@@ -1052,21 +1453,62 @@ export default function TokensPage() {
                           top: 0,
                           bottom: 0,
                           width: 3,
-                          background: chainColor,
+                          background: `linear-gradient(180deg, ${chainColor} 0%, ${chainColor}60 100%)`,
                           borderRadius: '0 3px 3px 0',
-                          boxShadow: `0 0 12px ${chainColor}80`,
+                          boxShadow: `0 0 16px ${chainColor}60`,
                         }}
                       />
                     )}
 
                     {/* Rank */}
-                    <span style={{ fontSize: '12px', color: '#484f58', fontWeight: 700, paddingLeft: '6px' }}>
-                      {i + 1}
+                    <span
+                      style={{
+                        paddingLeft: '6px',
+                        fontFamily: 'JetBrains Mono, monospace',
+                      }}
+                    >
+                      {isTop3 ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 22,
+                            height: 22,
+                            borderRadius: '6px',
+                            background: i === 0
+                              ? 'rgba(210,153,34,0.2)'
+                              : i === 1
+                              ? 'rgba(180,180,180,0.15)'
+                              : 'rgba(180,100,60,0.15)',
+                            color: i === 0 ? '#d29922' : i === 1 ? '#b0b0b0' : '#b4643c',
+                            fontSize: '11px',
+                            fontWeight: 900,
+                            border: `1px solid ${i === 0 ? 'rgba(210,153,34,0.3)' : i === 1 ? 'rgba(180,180,180,0.2)' : 'rgba(180,100,60,0.2)'}`,
+                          }}
+                        >
+                          {i + 1}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '11px', color: '#484f58', fontWeight: 700 }}>
+                          {i + 1}
+                        </span>
+                      )}
                     </span>
 
                     {/* Token info */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      <div style={{ position: 'relative', width: 34, height: 34, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
+                      {/* Avatar */}
+                      <div
+                        style={{
+                          position: 'relative',
+                          width: 38,
+                          height: 38,
+                          flexShrink: 0,
+                          transition: 'transform 0.2s',
+                          transform: isHovered ? 'scale(1.06)' : 'scale(1)',
+                        }}
+                      >
                         {p.info?.imageUrl ? (
                           <img
                             src={p.info.imageUrl}
@@ -1077,7 +1519,9 @@ export default function TokensPage() {
                               borderRadius: '50%',
                               objectFit: 'cover',
                               background: '#21262d',
-                              border: `1px solid ${chainColor}40`,
+                              border: `2px solid ${isHovered ? chainColor + '80' : chainColor + '35'}`,
+                              transition: 'border-color 0.2s',
+                              boxShadow: isHovered ? `0 0 12px ${chainColor}40` : 'none',
                             }}
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
@@ -1087,15 +1531,17 @@ export default function TokensPage() {
                               width: '100%',
                               height: '100%',
                               borderRadius: '50%',
-                              background: `linear-gradient(135deg, ${chainColor}30 0%, #0b0e11 100%)`,
-                              border: `1px solid ${chainColor}30`,
+                              background: `linear-gradient(135deg, ${chainColor}35 0%, #0b0e11 100%)`,
+                              border: `2px solid ${isHovered ? chainColor + '70' : chainColor + '30'}`,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontWeight: 800,
-                              fontSize: '13px',
+                              fontWeight: 900,
+                              fontSize: '14px',
                               color: chainColor,
                               textTransform: 'uppercase',
+                              transition: 'border-color 0.2s, box-shadow 0.2s',
+                              boxShadow: isHovered ? `0 0 14px ${chainColor}30` : 'none',
                             }}
                           >
                             {(p.baseToken?.symbol || '?').substring(0, 1)}
@@ -1107,8 +1553,8 @@ export default function TokensPage() {
                             position: 'absolute',
                             bottom: '-2px',
                             right: '-2px',
-                            width: 14,
-                            height: 14,
+                            width: 15,
+                            height: 15,
                             borderRadius: '4px',
                             background: chainColor,
                             border: '2px solid #0b0e11',
@@ -1119,27 +1565,33 @@ export default function TokensPage() {
                             fontSize: '7px',
                             fontWeight: 900,
                             textTransform: 'uppercase',
+                            boxShadow: `0 2px 6px rgba(0,0,0,0.4)`,
                           }}
                         >
                           {p.chainId?.[0]}
                         </div>
                       </div>
 
-                      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {/* Token text */}
+                      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <span
                             style={{
-                              fontWeight: 700,
+                              fontWeight: 800,
                               fontSize: '13px',
-                              color: '#ffffff',
+                              color: isHovered ? '#ffffff' : '#e6edf3',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
+                              transition: 'color 0.15s',
+                              letterSpacing: '-0.01em',
                             }}
                           >
                             {p.baseToken?.symbol}
                           </span>
-                          <span style={{ color: '#484f58', fontSize: '11px' }}>/{p.quoteToken?.symbol}</span>
+                          <span style={{ color: '#30363d', fontSize: '11px', flexShrink: 0 }}>
+                            /{p.quoteToken?.symbol}
+                          </span>
                           {p.boosts?.active ? (
                             <span
                               style={{
@@ -1147,24 +1599,34 @@ export default function TokensPage() {
                                 alignItems: 'center',
                                 gap: '2px',
                                 fontSize: '9px',
-                                fontWeight: 800,
+                                fontWeight: 900,
                                 color: '#000',
-                                background: '#d29922',
-                                padding: '1px 5px',
+                                background: 'linear-gradient(135deg, #f0b94d, #d29922)',
+                                padding: '2px 5px',
                                 borderRadius: '4px',
+                                flexShrink: 0,
+                                boxShadow: '0 0 8px rgba(210,153,34,0.4)',
                               }}
                             >
-                              <Zap size={9} fill="currentColor" />
+                              <Zap size={8} fill="currentColor" />
                               {p.boosts.active}
                             </span>
                           ) : null}
                         </div>
-                        <div style={{ fontSize: '10px', color: '#484f58', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <span>{p.dexId}</span>
-                          <span style={{ opacity: 0.3 }}>·</span>
+                        <div
+                          style={{
+                            fontSize: '10px',
+                            color: '#484f58',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <span style={{ fontWeight: 600 }}>{p.dexId}</span>
+                          <span style={{ opacity: 0.25 }}>·</span>
                           <ChainBadge chain={p.chainId} />
-                          <span style={{ opacity: 0.3 }}>·</span>
-                          <span style={{ color: '#6e7681' }}>{fmtAge(p.pairCreatedAt)}</span>
+                          <span style={{ opacity: 0.25 }}>·</span>
+                          <span style={{ color: '#6e7681', fontWeight: 500 }}>{fmtAge(p.pairCreatedAt)}</span>
                         </div>
                       </div>
                     </div>
@@ -1175,8 +1637,12 @@ export default function TokensPage() {
                         textAlign: 'right',
                         fontFamily: 'JetBrains Mono, monospace',
                         fontSize: '12px',
-                        fontWeight: 700,
+                        fontWeight: 800,
                         color: pos ? '#00d97e' : '#f04d4d',
+                        letterSpacing: '-0.01em',
+                        textShadow: pos
+                          ? '0 0 12px rgba(0,217,126,0.25)'
+                          : '0 0 12px rgba(240,77,77,0.25)',
                       }}
                     >
                       {fmtUsd(p.priceUsd)}
@@ -1188,12 +1654,28 @@ export default function TokensPage() {
                     </div>
 
                     {/* Txns */}
-                    <div style={{ textAlign: 'right', fontSize: '12px', color: '#8b949e', fontWeight: 500 }}>
+                    <div
+                      style={{
+                        textAlign: 'right',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: '12px',
+                        color: '#6e7681',
+                        fontWeight: 600,
+                      }}
+                    >
                       {fmtNum((p.txns?.h24?.buys || 0) + (p.txns?.h24?.sells || 0))}
                     </div>
 
                     {/* Volume */}
-                    <div style={{ textAlign: 'right', fontFamily: 'JetBrains Mono', fontSize: '12px', color: '#8b949e', fontWeight: 500 }}>
+                    <div
+                      style={{
+                        textAlign: 'right',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: '12px',
+                        color: '#6e7681',
+                        fontWeight: 600,
+                      }}
+                    >
                       {fmtUsd(p.volume?.h24)}
                     </div>
 
@@ -1204,39 +1686,58 @@ export default function TokensPage() {
                     <div style={{ textAlign: 'right' }}><PctBadge v={p.priceChange?.h24} /></div>
 
                     {/* Liquidity */}
-                    <div style={{ textAlign: 'right', fontFamily: 'JetBrains Mono', fontSize: '12px', color: '#6e7681' }}>
+                    <div
+                      style={{
+                        textAlign: 'right',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: '12px',
+                        color: '#6e7681',
+                        fontWeight: 600,
+                      }}
+                    >
                       {fmtUsd(p.liquidity?.usd)}
                     </div>
 
-                    {/* MCap */}
-                    <div style={{ textAlign: 'right', fontFamily: 'JetBrains Mono', fontSize: '12px', color: '#6e7681' }}>
+                    {/* MCap / FDV */}
+                    <div
+                      style={{
+                        textAlign: 'right',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: '12px',
+                        color: '#6e7681',
+                        fontWeight: 600,
+                      }}
+                    >
                       {fmtUsd(p.marketCap)}
                     </div>
                   </div>
                 );
               })
             )}
+          </div></div>)}
           </div>
         </div>
       </div>
 
-      {/* Deep Filter Modal */}
+      {/* ===== FILTER MODAL ===== */}
       {showFilters && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.7)',
+            background: 'rgba(0,0,0,0.75)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
-            backdropFilter: 'blur(12px)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             animation: 'fadeIn 0.2s ease-out',
           }}
           onClick={() => setShowFilters(false)}
         >
           <div
+            className="modal-enter"
             style={{
               borderRadius: '24px',
               width: '100%',
@@ -1244,15 +1745,35 @@ export default function TokensPage() {
               padding: '32px',
               position: 'relative',
               margin: '20px',
-              background: 'rgba(16,20,26,0.96)',
+              background: 'rgba(13,17,23,0.98)',
               border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 32px 80px rgba(0,0,0,0.7)',
-              backdropFilter: 'blur(24px)',
+              boxShadow: '0 40px 100px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(30px)',
+              overflow: 'hidden',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+            {/* Top accent */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '2px',
+                background: 'linear-gradient(90deg, #4f8ef7, #a371f7)',
+              }}
+            />
+
+            {/* Header */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '28px',
+              }}
+            >
               <h2
                 style={{
                   fontSize: '18px',
@@ -1262,18 +1783,20 @@ export default function TokensPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
+                  letterSpacing: '-0.3px',
                 }}
               >
                 <div
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '10px',
-                    background: 'rgba(79,142,247,0.15)',
+                    width: 38,
+                    height: 38,
+                    borderRadius: '11px',
+                    background: 'rgba(79,142,247,0.12)',
                     border: '1px solid rgba(79,142,247,0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    boxShadow: '0 0 16px rgba(79,142,247,0.15)',
                   }}
                 >
                   <SlidersHorizontal size={16} color="#4f8ef7" />
@@ -1296,7 +1819,7 @@ export default function TokensPage() {
                   fontSize: '16px',
                   transition: 'all 0.2s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#fff'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#8b949e'; }}
               >
                 ✕
@@ -1304,7 +1827,14 @@ export default function TokensPage() {
             </div>
 
             <div
-              style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '55vh', overflowY: 'auto', paddingRight: '8px' }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+                maxHeight: '55vh',
+                overflowY: 'auto',
+                paddingRight: '8px',
+              }}
               className="custom-scrollbar"
             >
               {[
@@ -1338,21 +1868,29 @@ export default function TokensPage() {
                         type="number"
                         placeholder={idx === 0 ? 'Min' : 'Max'}
                         value={(deepFilters as any)[f.keys[idx]]}
-                        onChange={(e) => setDeepFilters((prev) => ({ ...prev, [f.keys[idx]]: e.target.value }))}
+                        onChange={(e) =>
+                          setDeepFilters((prev) => ({ ...prev, [f.keys[idx]]: e.target.value }))
+                        }
                         style={{
                           flex: 1,
-                          background: 'rgba(0,0,0,0.4)',
-                          border: `1px solid ${f.color}25`,
+                          background: 'rgba(0,0,0,0.45)',
+                          border: `1px solid ${f.color}22`,
                           borderRadius: '10px',
                           color: '#e6edf3',
                           padding: '10px 14px',
                           fontSize: '13px',
                           outline: 'none',
                           fontFamily: 'Inter, sans-serif',
-                          transition: 'border-color 0.2s',
+                          transition: 'border-color 0.2s, box-shadow 0.2s',
                         }}
-                        onFocus={(e) => (e.currentTarget.style.borderColor = `${f.color}60`)}
-                        onBlur={(e) => (e.currentTarget.style.borderColor = `${f.color}25`)}
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = `${f.color}55`;
+                          e.currentTarget.style.boxShadow = `0 0 0 3px ${f.color}10`;
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = `${f.color}22`;
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
                       />
                     ))}
                   </div>
@@ -1372,7 +1910,7 @@ export default function TokensPage() {
                 style={{
                   flex: 1,
                   height: '46px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '13px',
                   borderRadius: '12px',
                   border: '1px solid rgba(255,255,255,0.1)',
@@ -1381,10 +1919,10 @@ export default function TokensPage() {
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = '#fff'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#8b949e'; }}
               >
-                Reset
+                Reset All
               </button>
               <button
                 onClick={() => setShowFilters(false)}
@@ -1392,17 +1930,18 @@ export default function TokensPage() {
                   flex: 2,
                   height: '46px',
                   fontSize: '14px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   borderRadius: '12px',
                   border: 'none',
                   background: 'linear-gradient(135deg, #4f8ef7 0%, #2563eb 100%)',
                   color: '#ffffff',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  boxShadow: '0 8px 20px rgba(79,142,247,0.3)',
+                  boxShadow: '0 8px 24px rgba(79,142,247,0.35)',
+                  letterSpacing: '0.02em',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'none'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(79,142,247,0.45)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(79,142,247,0.35)'; }}
               >
                 Apply Filters
               </button>

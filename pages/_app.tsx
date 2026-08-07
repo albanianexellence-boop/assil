@@ -79,6 +79,7 @@ const App = ({ Component, pageProps }: AppProps) => {
               name="description"
               content="Trade crypto with low fees and deep liquidity on NexSwap DEX"
             />
+            <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
             <link rel="icon" href="/favicon.ico" />
           </NextHead>
           <GeistProvider>

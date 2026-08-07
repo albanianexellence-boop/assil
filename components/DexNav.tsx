@@ -3,9 +3,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { DynamicWidget } from '@dynamic-labs/sdk-react-core';
 
-export const DexNav = () => {
+interface DexNavProps {
+  onMobileSidebarToggle?: () => void;
+}
+
+export const DexNav = ({ onMobileSidebarToggle }: DexNavProps = {}) => {
   const router = useRouter();
   const [boostedTokens, setBoostedTokens] = useState<any[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch('https://api.dexscreener.com/token-boosts/top/v1')
@@ -147,6 +152,7 @@ export const DexNav = () => {
   ];
 
   return (
+    <>
     <header
       className="glass"
       style={{
@@ -159,11 +165,42 @@ export const DexNav = () => {
         height: '60px',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 16px',
-        gap: '20px',
+        padding: '0 12px',
+        gap: '12px',
         boxShadow: 'var(--premium-shadow)',
       }}
     >
+      {/* Mobile sidebar toggle */}
+      {onMobileSidebarToggle && (
+        <button
+          className="mobile-only"
+          onClick={onMobileSidebarToggle}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: '9px',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#8b949e',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            transition: 'all 0.2s',
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#8b949e'; }}
+          aria-label="Open filters"
+        >
+          <svg width="16" height="14" viewBox="0 0 16 14" fill="currentColor">
+            <rect y="0" width="16" height="2" rx="1" />
+            <rect y="6" width="11" height="2" rx="1" />
+            <rect y="12" width="7" height="2" rx="1" />
+          </svg>
+        </button>
+      )}
+
       {/* Brand Logo */}
       <Link
         href="/tokens"
@@ -172,7 +209,6 @@ export const DexNav = () => {
           alignItems: 'center',
           gap: '8px',
           textDecoration: 'none',
-          width: '224px', // Match sidebar width roughly
           flexShrink: 0,
         }}
       >
@@ -211,8 +247,8 @@ export const DexNav = () => {
         </h1>
       </Link>
 
-      {/* Nav Links */}
-      <nav style={{ display: 'flex', gap: '8px', zIndex: 10 }}>
+      {/* Nav Links — desktop only */}
+      <nav className="dex-nav-links" style={{ display: 'flex', gap: '4px', zIndex: 10 }}>
         {navLinks.map((item) => {
           const active = router.pathname === item.href;
           return (
@@ -222,33 +258,68 @@ export const DexNav = () => {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '6px 14px',
-                borderRadius: '8px',
+                gap: '7px',
+                padding: '6px 13px',
+                borderRadius: '9px',
                 fontSize: '13px',
                 fontWeight: active ? 700 : 500,
                 color: active ? '#fff' : '#8b949e',
-                background: active ? '#21262d' : 'transparent',
-                transition: 'all 0.1s',
+                background: active
+                  ? 'rgba(0,217,126,0.1)'
+                  : 'transparent',
+                border: `1px solid ${active ? 'rgba(0,217,126,0.2)' : 'transparent'}`,
+                transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                 textDecoration: 'none',
+                position: 'relative',
+              }}
+              onMouseOver={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  e.currentTarget.style.color = '#c9d1d9';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!active) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#8b949e';
+                  e.currentTarget.style.borderColor = 'transparent';
+                }
               }}
             >
               <div
                 style={{
                   display: 'flex',
                   color: active ? '#00d97e' : 'inherit',
+                  transition: 'color 0.2s',
                 }}
               >
                 {item.icon}
               </div>
               {item.label}
+              {active && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '-1px',
+                    left: '12px',
+                    right: '12px',
+                    height: '2px',
+                    background: 'linear-gradient(90deg, #00d97e, #4f8ef7)',
+                    borderRadius: '2px',
+                    animation: 'underline-slide 0.25s ease-out forwards',
+                    transformOrigin: 'left',
+                  }}
+                />
+              )}
             </Link>
           );
         })}
       </nav>
 
-      {/* DYNAMIC MARQUEE TICKER */}
+      {/* DYNAMIC MARQUEE TICKER — hidden on mobile */}
       <div
+        className="dex-nav-ticker"
         style={{
           flex: 1,
           overflow: 'hidden',
@@ -256,8 +327,6 @@ export const DexNav = () => {
           alignItems: 'center',
           height: '100%',
           position: 'relative',
-          background:
-            'linear-gradient(90deg, transparent 0%, transparent 10%, transparent 90%, transparent 100%)', // Removed solid background to let glass show
           zIndex: 0,
         }}
       >
@@ -272,7 +341,7 @@ export const DexNav = () => {
             return (
               <a
                 key={i}
-                href={`/tokens/${b.chainId}/${b.tokenAddress}`}
+                href={`/tokens/${b.chainId}/${b.pairAddress}`}
                 className="flex items-center gap-1.5 transition-opacity hover:opacity-80 decoration-none"
               >
                 <span className="text-[#a0a5ad] text-[10px] font-bold">
@@ -317,20 +386,99 @@ export const DexNav = () => {
         </div>
       </div>
 
-      {/* Stats / Prices */}
-      <div
+      {/* Mobile hamburger for nav links */}
+      <button
+        className="mobile-only"
+        onClick={() => setMobileMenuOpen((p) => !p)}
+        aria-label="Navigation menu"
         style={{
+          marginLeft: 'auto',
+          width: 36,
+          height: 36,
+          borderRadius: '9px',
+          background: mobileMenuOpen ? 'rgba(0,217,126,0.1)' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${mobileMenuOpen ? 'rgba(0,217,126,0.25)' : 'rgba(255,255,255,0.1)'}`,
+          color: mobileMenuOpen ? '#00d97e' : '#8b949e',
+          cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '16px',
-          marginLeft: 'auto',
-          zIndex: 10,
+          justifyContent: 'center',
+          flexShrink: 0,
+          transition: 'all 0.2s',
         }}
       >
-        <div style={{ marginLeft: '8px' }}>
-          <DynamicWidget />
-        </div>
+        {mobileMenuOpen ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="1" y1="1" x2="13" y2="13" /><line x1="13" y1="1" x2="1" y2="13" />
+          </svg>
+        ) : (
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor">
+            <rect y="0" width="16" height="2" rx="1" />
+            <rect y="5" width="16" height="2" rx="1" />
+            <rect y="10" width="16" height="2" rx="1" />
+          </svg>
+        )}
+      </button>
+
+      {/* Wallet */}
+      <div
+        className="dex-nav-wallet"
+        style={{ display: 'flex', alignItems: 'center', zIndex: 10, flexShrink: 0 }}
+      >
+        <DynamicWidget />
       </div>
     </header>
+
+    {/* Mobile nav dropdown */}
+    {mobileMenuOpen && (
+      <div
+        className="mobile-only"
+        style={{
+          position: 'fixed',
+          top: '60px',
+          left: 0,
+          right: 0,
+          zIndex: 119,
+          background: 'rgba(9,12,16,0.98)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          padding: '12px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          animation: 'page-enter 0.2s ease-out',
+          boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+        }}
+      >
+        {navLinks.map((item) => {
+          const active = router.pathname === item.href;
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: active ? 700 : 500,
+                color: active ? '#00d97e' : '#8b949e',
+                background: active ? 'rgba(0,217,126,0.08)' : 'transparent',
+                border: `1px solid ${active ? 'rgba(0,217,126,0.2)' : 'transparent'}`,
+                textDecoration: 'none',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ color: active ? '#00d97e' : 'inherit', flexShrink: 0 }}>{item.icon}</div>
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
+    )}
+    </>
   );
 };

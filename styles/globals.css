@@ -472,3 +472,383 @@ textarea {
 .animate-marquee:hover {
   animation-play-state: paused;
 }
+
+/* ============================================================
+   PREMIUM ANIMATIONS — added design pass
+   ============================================================ */
+
+/* Page-level entrance */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* Modal scale-in */
+@keyframes modal-scale-in {
+  from { opacity: 0; transform: scale(0.90) translateY(16px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+/* Floating empty-state icon */
+@keyframes float {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-12px); }
+}
+
+/* Bounce-in for prize reveal */
+@keyframes bounce-in {
+  0%   { transform: scale(0.3);  opacity: 0; }
+  55%  { transform: scale(1.1);  opacity: 1; }
+  75%  { transform: scale(0.95);             }
+  100% { transform: scale(1);               }
+}
+
+/* Skeleton loading wave */
+@keyframes skeleton-wave {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Slow-spin for decorative rings */
+@keyframes spin-slow {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+/* Gradient-border shimmer */
+@keyframes gradient-shift {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+/* Stagger item reveal */
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+
+/* Neon pulse — green */
+@keyframes neon-pulse-green {
+  0%, 100% { box-shadow: 0 0 6px rgba(0,217,126,0.4), 0 0 14px rgba(0,217,126,0.2); }
+  50%       { box-shadow: 0 0 18px rgba(0,217,126,0.7), 0 0 36px rgba(0,217,126,0.35); }
+}
+
+/* Button press feedback */
+@keyframes btn-press {
+  0%   { transform: scale(1);    }
+  50%  { transform: scale(0.95); }
+  100% { transform: scale(1);    }
+}
+
+/* Wheel outer glow pulse */
+@keyframes wheel-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(163,113,247,0.4), 0 0 40px rgba(0,217,126,0.2); }
+  50%       { box-shadow: 0 0 40px rgba(163,113,247,0.7), 0 0 80px rgba(0,217,126,0.4); }
+}
+
+/* Triggered alert badge pop */
+@keyframes badge-pop {
+  0%   { transform: scale(0.8); opacity: 0; }
+  70%  { transform: scale(1.1);             }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* Underline slide for nav links */
+@keyframes underline-slide {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+.page-enter {
+  animation: page-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.modal-enter {
+  animation: modal-scale-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.float-icon {
+  animation: float 3.2s ease-in-out infinite;
+}
+
+.bounce-in {
+  animation: bounce-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.neon-green {
+  animation: neon-pulse-green 2.4s ease-in-out infinite;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.8s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Gradient-animated background for special buttons */
+.btn-gradient-animated {
+  background: linear-gradient(135deg, #00d97e, #4f8ef7, #a371f7, #00d97e);
+  background-size: 300% 300%;
+  animation: gradient-shift 4s ease infinite;
+}
+
+/* Premium card with hover gradient border */
+.premium-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s;
+}
+
+.premium-card:hover {
+  border-color: rgba(0, 217, 126, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 217, 126, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Input focus glow */
+.input-premium {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  padding: 12px 16px;
+  outline: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.input-premium:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(79, 142, 247, 0.12);
+}
+
+.input-premium::placeholder {
+  color: var(--text-muted);
+}
+
+/* Wheel glow */
+.wheel-glow {
+  animation: wheel-glow 2.5s ease-in-out infinite;
+}
+
+/* Nav link active underline */
+.nav-link-active-bar {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-green);
+  border-radius: 2px;
+  transform-origin: left;
+  animation: underline-slide 0.25s ease-out forwards;
+}
+
+/* Alert card accent colors */
+.alert-card-active {
+  border-left: 3px solid var(--accent-green);
+}
+
+.alert-card-triggered {
+  border-left: 3px solid var(--accent-yellow);
+}
+
+.alert-card-inactive {
+  border-left: 3px solid var(--border);
+}
+
+/* Stagger children animation helper */
+.stagger-item {
+  opacity: 0;
+  animation: stagger-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0.05s; }
+.stagger-item:nth-child(2) { animation-delay: 0.10s; }
+.stagger-item:nth-child(3) { animation-delay: 0.15s; }
+.stagger-item:nth-child(4) { animation-delay: 0.20s; }
+.stagger-item:nth-child(5) { animation-delay: 0.25s; }
+.stagger-item:nth-child(6) { animation-delay: 0.30s; }
+.stagger-item:nth-child(7) { animation-delay: 0.35s; }
+.stagger-item:nth-child(8) { animation-delay: 0.40s; }
+.stagger-item:nth-child(9) { animation-delay: 0.45s; }
+.stagger-item:nth-child(10) { animation-delay: 0.50s; }
+
+/* ============================================================
+   RESPONSIVE — MOBILE FIRST
+   ============================================================ */
+
+/* ---- Sidebar mobile overlay ---- */
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes fade-backdrop {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Mobile sidebar transforms */
+.dex-sidebar {
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Mobile sidebar overlay backdrop */
+.mobile-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 199;
+  animation: fade-backdrop 0.25s ease-out;
+}
+
+/* Prevent viewport overflow on all devices */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+}
+
+/* Desktop only: always show sidebar inline */
+@media (min-width: 769px) {
+  .dex-sidebar {
+    transform: translateX(0) !important;
+    position: static !important;
+  }
+  .mobile-only { display: none !important; }
+  .mobile-sidebar-backdrop { display: none !important; }
+  .mobile-page-overlay { display: none !important; }
+}
+
+/* Mobile: sidebar as full-height overlay */
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+
+  /* Sidebar: fixed, off-screen by default */
+  .dex-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+    transform: translateX(-100%);
+    z-index: 200 !important;
+    width: 280px !important;
+  }
+
+  /* When open */
+  .dex-sidebar--open {
+    transform: translateX(0) !important;
+  }
+
+  /* Show backdrop when sidebar open */
+  .mobile-sidebar-backdrop--visible {
+    display: block;
+  }
+
+  /* Scrollable token table */
+  .token-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* DexNav on mobile */
+  .dex-nav-ticker { display: none !important; }
+  .dex-nav-links  { display: none !important; }
+
+  /* Stats grid: 2 cols on mobile */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .stats-grid-live {
+    grid-column: span 2 !important;
+  }
+
+  /* Pair page: right panel stacks below */
+  .pair-layout {
+    flex-direction: column !important;
+    overflow: visible !important;
+    width: 100% !important;
+  }
+  .pair-right-panel {
+    width: 100% !important;
+    max-width: 100vw !important;
+    border-left: none !important;
+    border-top: 1px solid rgba(255,255,255,0.07) !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+  .pair-left-panel {
+    overflow: visible !important;
+    height: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Page padding */
+  .mobile-p-sm { padding: 16px !important; }
+  .mobile-px-sm { padding-left: 10px !important; padding-right: 10px !important; }
+
+  /* Card grid: single column */
+  .mobile-single-col { grid-template-columns: 1fr !important; }
+
+  /* Watchlist / Admin table */
+  .responsive-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+  }
+
+  /* Hide long text on mobile */
+  .hide-on-mobile { display: none !important; }
+
+  /* Performance grid: 2x2 on mobile */
+  .perf-grid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Filter bar: smaller padding */
+  .filter-bar { padding: 6px 8px !important; }
+
+  /* Ticker: slightly smaller */
+  .ticker-item { padding: 0 12px !important; font-size: 11px !important; }
+}
+
+/* Tablet: 769px - 1024px */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .dex-sidebar { width: 200px !important; }
+  .pair-right-panel { width: 280px !important; }
+}
+
+/* Extra small: < 480px */
+@media (max-width: 480px) {
+  html { font-size: 13px; }
+  .dex-nav-wallet { transform: scale(0.9); transform-origin: right center; }
+  .stats-grid { gap: 8px !important; }
+}
+
+/* ---- Utility ---- */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.min-w-token-table { min-width: 800px; }
+.min-w-watchlist-table { min-width: 600px; }
+.min-w-admin-table { min-width: 700px; }

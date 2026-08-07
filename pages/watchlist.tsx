@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { DexNav } from '../components/DexNav';
 import { DexSidebar } from '../components/DexSidebar';
+import { useIsMobile } from '../hooks';
 
 interface WatchedPair {
   chainId: string;
@@ -12,11 +13,23 @@ interface WatchedPair {
   priceChange24h?: number;
 }
 
+const CHAIN_COLOR: Record<string, string> = {
+  ethereum: '#627eea',
+  bsc: '#f0b94d',
+  solana: '#9945ff',
+  base: '#0052ff',
+  arbitrum: '#12aaff',
+  polygon: '#8247e5',
+  avalanche: '#e84142',
+  optimism: '#ff0420',
+};
+
 export default function WatchlistPage() {
   const [watchlist, setWatchlist] = useState<WatchedPair[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Load from LocalStorage
   useEffect(() => {
     const saved = localStorage.getItem('dex_watchlist');
     if (saved) {
@@ -25,7 +38,6 @@ export default function WatchlistPage() {
     setLoading(false);
   }, []);
 
-  // Poll for price updates
   useEffect(() => {
     if (watchlist.length === 0) return;
 
@@ -54,7 +66,7 @@ export default function WatchlistPage() {
     };
 
     const interval = setInterval(updatePrices, 1000);
-    updatePrices(); // Initial update
+    updatePrices();
     return () => clearInterval(interval);
   }, [watchlist.length]);
 
@@ -66,282 +78,353 @@ export default function WatchlistPage() {
 
   return (
     <div
-      style={{ background: '#0b0e11', minHeight: '100vh', color: '#e6edf3' }}
+      className="premium-bg"
+      style={{ minHeight: '100vh', color: '#e6edf3', position: 'relative', overflow: 'hidden' }}
     >
       <Head>
         <title>Watchlist | NexSwap</title>
       </Head>
 
-      <DexNav />
+      {/* Background orbs */}
+      <div
+        style={{
+          position: 'fixed', top: '-20%', left: '-10%',
+          width: '500px', height: '500px',
+          background: 'radial-gradient(circle, rgba(79,142,247,0.06) 0%, transparent 70%)',
+          pointerEvents: 'none', zIndex: 0,
+        }}
+      />
+      <div
+        style={{
+          position: 'fixed', bottom: '-10%', right: '-5%',
+          width: '400px', height: '400px',
+          background: 'radial-gradient(circle, rgba(0,217,126,0.04) 0%, transparent 70%)',
+          pointerEvents: 'none', zIndex: 0,
+        }}
+      />
 
-      <div style={{ display: 'flex', paddingTop: '60px', height: '100vh' }}>
-        <DexSidebar />
+      <DexNav onMobileSidebarToggle={() => setMobileSidebarOpen((p) => !p)} />
+
+      <div style={{ display: 'flex', paddingTop: '60px', minHeight: '100vh', position: 'relative', zIndex: 1 }}>
+        <DexSidebar
+          mobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
 
         <main
-          style={{ flex: 1, padding: '24px', overflowY: 'auto' }}
+          style={{ flex: 1, padding: isMobile ? '16px 12px' : '28px', overflowY: 'auto', minWidth: 0 }}
           className="custom-scrollbar"
         >
-          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }} className="page-enter">
+            {/* Page header */}
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '32px',
+                marginBottom: '28px',
               }}
             >
               <div>
                 <h1
                   style={{
-                    fontSize: '24px',
+                    fontSize: '26px',
                     fontWeight: 800,
-                    margin: '0 0 4px 0',
+                    margin: '0 0 6px 0',
+                    letterSpacing: '-0.5px',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #8b949e 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
                   }}
                 >
                   Watchlist
                 </h1>
-                <p style={{ color: '#8b949e', fontSize: '14px', margin: 0 }}>
+                <p style={{ color: '#484f58', fontSize: '14px', margin: 0, fontWeight: 500 }}>
                   Track your favorite tokens in real-time
                 </p>
               </div>
               <Link
                 href="/tokens"
                 style={{
-                  background: '#21262d',
-                  color: '#fff',
-                  padding: '8px 16px',
-                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(0,217,126,0.1)',
+                  color: '#00d97e',
+                  padding: '10px 18px',
+                  borderRadius: '10px',
                   fontSize: '13px',
-                  fontWeight: 600,
-                  border: '1px solid #30363d',
+                  fontWeight: 700,
+                  border: '1px solid rgba(0,217,126,0.25)',
+                  transition: 'all 0.2s',
+                  textDecoration: 'none',
+                  backdropFilter: 'blur(8px)',
+                }}
+                onMouseOver={(e: any) => {
+                  e.currentTarget.style.background = 'rgba(0,217,126,0.18)';
+                  e.currentTarget.style.boxShadow = '0 0 20px rgba(0,217,126,0.2)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseOut={(e: any) => {
+                  e.currentTarget.style.background = 'rgba(0,217,126,0.1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                + Add Tokens
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Tokens
               </Link>
             </div>
 
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '100px' }}>
-                Loading your watchlist...
+              <div style={{ padding: '80px 20px', textAlign: 'center' }}>
+                <div
+                  style={{
+                    width: 40, height: 40,
+                    borderRadius: '50%',
+                    border: '3px solid rgba(0,217,126,0.15)',
+                    borderTopColor: '#00d97e',
+                    animation: 'spin 0.9s linear infinite',
+                    margin: '0 auto 16px',
+                  }}
+                />
+                <div style={{ color: '#484f58', fontSize: '14px', fontWeight: 500 }}>Loading your watchlist…</div>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
               </div>
             ) : watchlist.length === 0 ? (
               <div
                 style={{
-                  background: '#12151a',
-                  border: '1px dashed #30363d',
-                  borderRadius: '16px',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px dashed rgba(255,255,255,0.1)',
+                  borderRadius: '20px',
                   padding: '80px 40px',
                   textAlign: 'center',
+                  backdropFilter: 'blur(12px)',
                 }}
               >
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>⭐</div>
-                <h2
-                  style={{
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    marginBottom: '8px',
-                  }}
-                >
+                <div className="float-icon" style={{ fontSize: '52px', marginBottom: '20px', display: 'block' }}>⭐</div>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '10px', color: '#e6edf3' }}>
                   Your Watchlist is Empty
                 </h2>
-                <p style={{ color: '#8b949e', marginBottom: '24px' }}>
+                <p style={{ color: '#484f58', marginBottom: '28px', fontSize: '14px' }}>
                   Click the star icon on any token page to add it here.
                 </p>
                 <Link
                   href="/tokens"
                   style={{
-                    background: '#00d97e',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'linear-gradient(135deg, #00d97e 0%, #00a86b 100%)',
                     color: '#000',
-                    padding: '12px 24px',
-                    borderRadius: '10px',
-                    fontWeight: 700,
+                    padding: '12px 28px',
+                    borderRadius: '12px',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    textDecoration: 'none',
+                    boxShadow: '0 8px 24px rgba(0,217,126,0.35)',
+                    transition: 'all 0.2s',
                   }}
+                  onMouseOver={(e: any) => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseOut={(e: any) => { e.currentTarget.style.filter = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}
                 >
                   Explore Tokens
                 </Link>
               </div>
             ) : (
               <div
+                className="responsive-table-wrapper"
                 style={{
-                  background: '#12151a',
-                  border: '1px solid #21262d',
-                  borderRadius: '12px',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: '16px',
                   overflow: 'hidden',
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
                 }}
               >
-                <table
+              <div style={{ minWidth: '560px' }}>
+                {/* Table header */}
+                <div
                   style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    textAlign: 'left',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 140px 120px 120px 140px',
+                    padding: '14px 20px',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(11,14,17,0.8)',
+                    backdropFilter: 'blur(16px)',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 5,
                   }}
                 >
-                  <thead>
-                    <tr
+                  {['ASSET', 'PRICE', '24H CHANGE', 'NETWORK', 'ACTIONS'].map((col, i) => (
+                    <span
+                      key={col}
                       style={{
-                        borderBottom: '1px solid #21262d',
-                        background: 'rgba(255,255,255,0.02)',
+                        fontSize: '10px',
+                        color: '#484f58',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        textAlign: i >= 4 ? 'right' : i >= 1 ? 'right' : 'left',
                       }}
                     >
-                      <th
-                        style={{
-                          padding: '16px',
-                          fontSize: '12px',
-                          color: '#8b949e',
-                          fontWeight: 600,
-                        }}
+                      {col}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Rows */}
+                {watchlist.map((item, idx) => {
+                  const pos = (item.priceChange24h || 0) >= 0;
+                  const chainColor = CHAIN_COLOR[item.chainId] || '#484f58';
+                  return (
+                    <div
+                      key={item.pairAddress}
+                      className="stagger-item"
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 140px 120px 120px 140px',
+                        padding: '16px 20px',
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        alignItems: 'center',
+                        transition: 'background 0.15s',
+                        cursor: 'default',
+                        animationDelay: `${idx * 0.06}s`,
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      {/* Asset */}
+                      <Link
+                        href={`/tokens/${item.chainId}/${item.pairAddress}`}
+                        style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}
                       >
-                        ASSET
-                      </th>
-                      <th
-                        style={{
-                          padding: '16px',
-                          fontSize: '12px',
-                          color: '#8b949e',
-                          fontWeight: 600,
-                        }}
-                      >
-                        PRICE
-                      </th>
-                      <th
-                        style={{
-                          padding: '16px',
-                          fontSize: '12px',
-                          color: '#8b949e',
-                          fontWeight: 600,
-                        }}
-                      >
-                        24H CHANGE
-                      </th>
-                      <th
-                        style={{
-                          padding: '16px',
-                          fontSize: '12px',
-                          color: '#8b949e',
-                          fontWeight: 600,
-                        }}
-                      >
-                        NETWORK
-                      </th>
-                      <th
-                        style={{
-                          padding: '16px',
-                          fontSize: '12px',
-                          color: '#8b949e',
-                          fontWeight: 600,
-                          textAlign: 'right',
-                        }}
-                      >
-                        ACTIONS
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {watchlist.map((item) => (
-                      <tr
-                        key={item.pairAddress}
-                        style={{
-                          borderBottom: '1px solid #21262d',
-                          transition: 'background 0.2s',
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background =
-                            'rgba(255,255,255,0.02)')
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = 'transparent')
-                        }
-                      >
-                        <td style={{ padding: '16px' }}>
-                          <Link
-                            href={`/tokens/${item.chainId}/${item.pairAddress}`}
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            background: `linear-gradient(135deg, ${chainColor}30 0%, #0b0e11 100%)`,
+                            border: `1px solid ${chainColor}40`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            fontSize: '14px',
+                            color: chainColor,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {(item.symbol || '?').charAt(0)}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#fff', fontSize: '14px', lineHeight: 1.2 }}>
+                            {item.symbol}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#484f58', marginTop: '2px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>
+                            {item.chainId}
+                          </div>
+                        </div>
+                      </Link>
+
+                      {/* Price */}
+                      <div style={{ textAlign: 'right', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, fontSize: '13px', color: '#e6edf3' }}>
+                        {item.priceUsd ? `$${parseFloat(item.priceUsd).toFixed(6)}` : (
+                          <div className="skeleton" style={{ width: '80px', height: '14px', marginLeft: 'auto' }} />
+                        )}
+                      </div>
+
+                      {/* 24h change */}
+                      <div style={{ textAlign: 'right' }}>
+                        {item.priceChange24h !== undefined ? (
+                          <span
                             style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
                               fontWeight: 700,
-                              color: '#fff',
-                              fontSize: '15px',
+                              background: pos ? 'rgba(0,217,126,0.12)' : 'rgba(240,77,77,0.12)',
+                              color: pos ? '#00d97e' : '#f04d4d',
                             }}
                           >
-                            {item.symbol}
-                          </Link>
-                        </td>
-                        <td
+                            {pos ? '▲' : '▼'}
+                            {pos ? '+' : ''}{item.priceChange24h.toFixed(2)}%
+                          </span>
+                        ) : (
+                          <div className="skeleton" style={{ width: '60px', height: '22px', marginLeft: 'auto' }} />
+                        )}
+                      </div>
+
+                      {/* Network */}
+                      <div style={{ textAlign: 'right' }}>
+                        <span
                           style={{
-                            padding: '16px',
-                            fontFamily: 'JetBrains Mono',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {item.priceUsd
-                            ? `$${parseFloat(item.priceUsd).toFixed(6)}`
-                            : '...'}
-                        </td>
-                        <td
-                          style={{
-                            padding: '16px',
-                            fontWeight: 700,
-                            color:
-                              (item.priceChange24h || 0) >= 0
-                                ? '#00d97e'
-                                : '#f04d4d',
-                          }}
-                        >
-                          {item.priceChange24h
-                            ? `${item.priceChange24h > 0 ? '+' : ''}${item.priceChange24h.toFixed(2)}%`
-                            : '...'}
-                        </td>
-                        <td
-                          style={{
-                            padding: '16px',
-                            fontSize: '12px',
-                            color: '#8b949e',
+                            display: 'inline-block',
+                            background: `${chainColor}18`,
+                            color: chainColor,
+                            border: `1px solid ${chainColor}40`,
+                            padding: '3px 10px',
+                            borderRadius: '6px',
+                            fontSize: '10px',
+                            fontWeight: 800,
                             textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
                           }}
                         >
                           {item.chainId}
-                        </td>
-                        <td style={{ padding: '16px', textAlign: 'right' }}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              gap: '8px',
-                              justifyContent: 'flex-end',
-                            }}
-                          >
-                            <Link
-                              href={`/tokens/${item.chainId}/${item.pairAddress}`}
-                              style={{
-                                padding: '6px 12px',
-                                background: '#21262d',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                              }}
-                            >
-                              View
-                            </Link>
-                            <button
-                              onClick={() =>
-                                removeFromWatchlist(item.pairAddress)
-                              }
-                              style={{
-                                padding: '6px 12px',
-                                background: 'rgba(240,77,77,0.1)',
-                                color: '#f04d4d',
-                                border: 'none',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </span>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <Link
+                          href={`/tokens/${item.chainId}/${item.pairAddress}`}
+                          style={{
+                            padding: '6px 14px',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '7px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#e6edf3',
+                            textDecoration: 'none',
+                            transition: 'all 0.15s',
+                          }}
+                          onMouseOver={(e: any) => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; }}
+                          onMouseOut={(e: any) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                        >
+                          View
+                        </Link>
+                        <button
+                          onClick={() => removeFromWatchlist(item.pairAddress)}
+                          style={{
+                            padding: '6px 12px',
+                            background: 'rgba(240,77,77,0.08)',
+                            border: '1px solid rgba(240,77,77,0.2)',
+                            color: '#f04d4d',
+                            borderRadius: '7px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(240,77,77,0.16)'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(240,77,77,0.08)'; }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
               </div>
             )}
           </div>

@@ -2160,6 +2160,8 @@ const CHAINS: ChainDef[] = [
 interface Props {
   selectedChain?: string;
   onChainSelect?: (chain: string) => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 type TabId = 'chains' | 'watchlist' | 'alerts' | 'multichart';
@@ -2863,12 +2865,11 @@ const MultichartTab: React.FC = () => (
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export const DexSidebar: React.FC<Props> = ({ selectedChain, onChainSelect }) => {
+export const DexSidebar: React.FC<Props> = ({ selectedChain, onChainSelect, mobileOpen, onMobileClose }) => {
   const router = useRouter();
   const { openSearch } = useGlobalSearch();
   const [activeTab, setActiveTab] = useState<TabId>('chains');
 
-  // Suppress unused variable warning — router is available for future use
   void router;
 
   useEffect(() => {
@@ -2886,6 +2887,16 @@ export const DexSidebar: React.FC<Props> = ({ selectedChain, onChainSelect }) =>
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Close on ESC when mobile
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onMobileClose?.();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [mobileOpen, onMobileClose]);
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -2896,8 +2907,17 @@ export const DexSidebar: React.FC<Props> = ({ selectedChain, onChainSelect }) =>
         .dex-sidebar input::placeholder { color: #484f58; }
         .dex-sidebar select option { background: #161b22; color: #e6edf3; }
       `}} />
+
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="mobile-sidebar-backdrop mobile-sidebar-backdrop--visible"
+          onClick={onMobileClose}
+        />
+      )}
+
       <aside
-        className="glass dex-sidebar"
+        className={`glass dex-sidebar${mobileOpen ? ' dex-sidebar--open' : ''}`}
         style={{
           width: '240px',
           flexShrink: 0,
@@ -2913,6 +2933,34 @@ export const DexSidebar: React.FC<Props> = ({ selectedChain, onChainSelect }) =>
           margin: '60px 0 0 0',
         }}
       >
+        {/* Mobile close button */}
+        <button
+          className="mobile-only"
+          onClick={onMobileClose}
+          style={{
+            position: 'absolute',
+            top: '14px',
+            right: '14px',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: '#8b949e',
+            fontSize: '16px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10,
+            transition: 'all 0.2s',
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#8b949e'; }}
+        >
+          ✕
+        </button>
+
         {/* Search bar */}
         <SidebarSearchBar onOpen={openSearch} />
 
@@ -2925,7 +2973,7 @@ export const DexSidebar: React.FC<Props> = ({ selectedChain, onChainSelect }) =>
         {/* Tab content */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {activeTab === 'chains' && (
-            <ChainsTab selectedChain={selectedChain} onChainSelect={onChainSelect} />
+            <ChainsTab selectedChain={selectedChain} onChainSelect={(c) => { onChainSelect?.(c); onMobileClose?.(); }} />
           )}
           {activeTab === 'watchlist' && <WatchlistTab />}
           {activeTab === 'alerts' && <AlertsTab />}

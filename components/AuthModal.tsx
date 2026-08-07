@@ -59,137 +59,213 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         left: 0,
         width: '100vw',
         height: '100vh',
-        backgroundColor: 'rgba(0,0,0,0.8)',
-        backdropFilter: 'blur(5px)',
+        background: 'rgba(0,0,0,0.75)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        animation: 'fadeIn 0.2s ease-out',
       }}
+      onClick={onClose}
     >
       <div
+        className="modal-enter"
         style={{
-          background: '#1a1a1a',
-          padding: '2rem',
-          borderRadius: '12px',
+          background: 'rgba(16,20,26,0.97)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          padding: '40px',
+          borderRadius: '24px',
           width: '90%',
-          maxWidth: '400px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-          border: '1px solid #333',
+          maxWidth: '420px',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          position: 'relative',
+          overflow: 'hidden',
         }}
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* Decorative top gradient line */}
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginBottom: '1.5rem',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '2px',
+            background: mode === 'login'
+              ? 'linear-gradient(90deg, #00d97e, #4f8ef7)'
+              : 'linear-gradient(90deg, #a371f7, #ff299f)',
+            transition: 'background 0.4s ease',
           }}
-        >
-          <h2 style={{ color: 'white', margin: 0 }}>
-            {mode === 'login' ? 'Welcome Back' : 'Create Account'}
-          </h2>
+        />
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+          <div>
+            <h2 style={{ color: '#ffffff', margin: '0 0 6px 0', fontSize: '22px', fontWeight: 800, letterSpacing: '-0.3px' }}>
+              {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+            </h2>
+            <p style={{ color: '#484f58', margin: 0, fontSize: '13px' }}>
+              {mode === 'login' ? 'Sign in to your account' : 'Join and claim your rewards'}
+            </p>
+          </div>
           <button
             onClick={onClose}
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#888',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: '#8b949e',
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               cursor: 'pointer',
-              fontSize: '1.5rem',
-              lineHeight: 1,
+              fontSize: '16px',
+              transition: 'all 0.2s',
+              flexShrink: 0,
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
+              e.currentTarget.style.color = '#fff';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              e.currentTarget.style.color = '#8b949e';
             }}
           >
-            &times;
+            ✕
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        {/* Mode toggle */}
+        <div
+          style={{
+            display: 'flex',
+            background: 'rgba(0,0,0,0.4)',
+            borderRadius: '12px',
+            padding: '4px',
+            marginBottom: '28px',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
         >
-          {mode === 'register' && (
-            <input
-              type="text"
-              placeholder="Your Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
+          {(['login', 'register'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
               style={{
-                width: '100%',
-                padding: '0.8rem',
-                borderRadius: '8px',
-                border: '1px solid #333',
-                background: '#000',
-                color: 'white',
-                outline: 'none',
+                flex: 1,
+                padding: '8px',
+                borderRadius: '9px',
+                border: 'none',
+                background: mode === m ? 'rgba(255,255,255,0.08)' : 'transparent',
+                color: mode === m ? '#ffffff' : '#484f58',
+                fontWeight: mode === m ? 700 : 500,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                letterSpacing: '0.01em',
               }}
-            />
+            >
+              {m === 'login' ? 'Login' : 'Register'}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {mode === 'register' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#484f58', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                Full Name
+              </label>
+              <input
+                type="text"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="input-premium"
+              />
+            </div>
           )}
 
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{
-              width: '100%',
-              padding: '0.8rem',
-              borderRadius: '8px',
-              border: '1px solid #333',
-              background: '#000',
-              color: 'white',
-              outline: 'none',
-            }}
-          />
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#484f58', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              Email Address
+            </label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="input-premium"
+            />
+          </div>
 
           <button
             type="submit"
             disabled={loading}
             style={{
-              marginTop: '1rem',
+              marginTop: '8px',
               width: '100%',
-              padding: '1rem',
-              borderRadius: '8px',
+              padding: '14px',
+              borderRadius: '12px',
               border: 'none',
               background: loading
-                ? '#555'
-                : 'linear-gradient(45deg, #b829ff, #ff299f)',
-              color: 'white',
-              fontWeight: 'bold',
+                ? 'rgba(255,255,255,0.08)'
+                : mode === 'login'
+                ? 'linear-gradient(135deg, #00d97e 0%, #4f8ef7 100%)'
+                : 'linear-gradient(135deg, #a371f7 0%, #ff299f 100%)',
+              color: loading ? '#484f58' : '#000',
+              fontWeight: 800,
+              fontSize: '14px',
               cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'opacity 0.2s',
+              transition: 'all 0.25s',
+              letterSpacing: '0.02em',
+              boxShadow: loading ? 'none' : mode === 'login'
+                ? '0 8px 24px rgba(0,217,126,0.35)'
+                : '0 8px 24px rgba(163,113,247,0.35)',
+            }}
+            onMouseOver={(e) => {
+              if (!loading) {
+                e.currentTarget.style.filter = 'brightness(1.1)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.filter = 'none';
+              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
             {loading
-              ? 'Processing...'
+              ? 'Processing…'
               : mode === 'login'
-                ? 'Login'
-                : 'Register'}
+              ? 'Login'
+              : 'Create Account'}
           </button>
         </form>
 
-        <p
-          style={{
-            color: '#888',
-            textAlign: 'center',
-            marginTop: '1.5rem',
-            fontSize: '0.9rem',
-          }}
-        >
-          {mode === 'login'
-            ? "Don't have an account? "
-            : 'Already have an account? '}
+        <p style={{ color: '#484f58', textAlign: 'center', marginTop: '24px', fontSize: '13px', margin: '24px 0 0' }}>
+          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
           <button
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
             style={{
               background: 'none',
               border: 'none',
-              color: '#ff299f',
+              color: mode === 'login' ? '#00d97e' : '#a371f7',
               cursor: 'pointer',
               padding: 0,
-              fontWeight: 'bold',
+              fontWeight: 700,
+              fontSize: '13px',
+              transition: 'filter 0.2s',
             }}
+            onMouseOver={(e) => { e.currentTarget.style.filter = 'brightness(1.2)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.filter = 'none'; }}
           >
             {mode === 'login' ? 'Sign up' : 'Log in'}
           </button>
