@@ -37,7 +37,11 @@ export const walletListTabsConfig = {
     style: 'grid' as const,
     items: [
       {
-        label: { text: 'BNB / EVM', key: 'bnb-evm' },
+        label: { text: 'Ethereum', key: 'ethereum' },
+        walletsFilter: FilterChain('EVM'),
+      },
+      {
+        label: { text: 'BNB', key: 'bnb' },
         walletsFilter: FilterChain('EVM'),
       },
       {

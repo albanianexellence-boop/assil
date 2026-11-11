@@ -41,11 +41,6 @@ const App = ({ Component, pageProps }: AppProps) => {
         SolanaWalletConnectors,
         BitcoinWalletConnectors,
       ],
-      bridgeChains: [
-        { chain: 'EVM' as const, chainId: 56 },
-        { chain: 'BTC' as const },
-        { chain: 'SOL' as const },
-      ],
       overrides: {
         views: [walletListTabsConfig],
         evmNetworks: mergeEvmNetworksWithBsc,

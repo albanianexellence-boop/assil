@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { DynamicBridgeWidget } from '@dynamic-labs/sdk-react-core';
+import { DynamicWidget } from '@dynamic-labs/sdk-react-core';
 import { accountCreatedAtom } from '../src/atoms/game-flow-atom';
 
 export const Sidebar = () => {
@@ -172,7 +172,7 @@ export const Sidebar = () => {
             ✓ Account created — connect your wallet
           </div>
         )}
-        <DynamicBridgeWidget />
+        <DynamicWidget />
       </div>
 
       {!accountCreated && (

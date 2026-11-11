@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { DynamicBridgeWidget } from '@dynamic-labs/sdk-react-core';
+import { DynamicWidget } from '@dynamic-labs/sdk-react-core';
 
 interface DexNavProps {
   onMobileSidebarToggle?: () => void;
@@ -425,7 +425,7 @@ export const DexNav = ({ onMobileSidebarToggle }: DexNavProps = {}) => {
         className="dex-nav-wallet"
         style={{ display: 'flex', alignItems: 'center', zIndex: 10, flexShrink: 0 }}
       >
-        <DynamicBridgeWidget />
+        <DynamicWidget />
       </div>
     </header>
 
