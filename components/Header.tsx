@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAtom } from 'jotai';
-import { DynamicWidget } from '@dynamic-labs/sdk-react-core';
+import { DynamicBridgeWidget } from '@dynamic-labs/sdk-react-core';
 import Link from 'next/link';
 import { loggedInUserAtom } from '../src/atoms/game-flow-atom';
 import { AuthModal } from './AuthModal';
@@ -198,7 +198,7 @@ export const Header = () => {
                 </button>
               </div>
 
-              <DynamicWidget />
+              <DynamicBridgeWidget />
             </>
           )}
         </div>

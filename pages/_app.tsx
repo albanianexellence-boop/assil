@@ -2,6 +2,7 @@ import { CssBaseline, GeistProvider } from '@geist-ui/core';
 import type { AppProps } from 'next/app';
 import NextHead from 'next/head';
 import { Analytics } from '@vercel/analytics/react';
+import { useMemo } from 'react';
 // @ts-ignore
 import '../styles/globals.css';
 
@@ -16,6 +17,11 @@ import { DynamicContextProvider } from '@dynamic-labs/sdk-react-core';
 import { EthereumWalletConnectors } from '@dynamic-labs/ethereum';
 import { SolanaWalletConnectors } from '@dynamic-labs/solana';
 import { BitcoinWalletConnectors } from '@dynamic-labs/bitcoin';
+import {
+  ensureBitcoinMainnet,
+  mergeEvmNetworksWithBsc,
+  walletListTabsConfig,
+} from '../src/config/dynamicProviderSettings';
 
 const dynamicEnvironmentId = z
   .string()
@@ -26,6 +32,29 @@ const queryClient = new QueryClient();
 
 const App = ({ Component, pageProps }: AppProps) => {
   const isMounted = useIsMounted();
+
+  const dynamicSettings = useMemo(
+    () => ({
+      environmentId: dynamicEnvironmentId,
+      walletConnectors: [
+        EthereumWalletConnectors,
+        SolanaWalletConnectors,
+        BitcoinWalletConnectors,
+      ],
+      bridgeChains: [
+        { chain: 'EVM' as const, chainId: 56 },
+        { chain: 'BTC' as const },
+        { chain: 'SOL' as const },
+      ],
+      overrides: {
+        views: [walletListTabsConfig],
+        evmNetworks: mergeEvmNetworksWithBsc,
+        bitcoinNetworks: ensureBitcoinMainnet,
+      },
+    }),
+    [],
+  );
+
   if (!dynamicEnvironmentId) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0b0e11', color: '#e6edf3', fontFamily: 'sans-serif', padding: '20px', textAlign: 'center' }}>
@@ -63,16 +92,7 @@ const App = ({ Component, pageProps }: AppProps) => {
   return (
     <QueryClientProvider client={queryClient}>
       <GlobalSearchProvider>
-        <DynamicContextProvider
-          settings={{
-            environmentId: dynamicEnvironmentId,
-            walletConnectors: [
-              EthereumWalletConnectors,
-              SolanaWalletConnectors,
-              BitcoinWalletConnectors,
-            ],
-          }}
-        >
+        <DynamicContextProvider settings={dynamicSettings}>
           <NextHead>
             <title>NexSwap | Decentralized Exchange</title>
             <meta
